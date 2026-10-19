@@ -1,0 +1,21 @@
+{
+  "schemaVersion": 1,
+  "configDigest": "sha256:df8e541d6867dc677ae29ceb2d73f23a8301ef1ee3b45bb3b0d43c5d19a04ab9",
+  "scannerVersion": "0.1.0",
+  "generatedAt": "2026-10-17T16:50:45.206Z",
+  "revision": {
+    "commit": "d604dec2757f047cc0183b1693a67c34e02f11a0",
+    "branch": "main"
+  },
+  "allowed": [
+    "dates|src/components/DateLabel.tsx|import|moment|0",
+    "dates|src/features/reports/ReportFilters.tsx|import|moment|0",
+    "dates|src/features/reports/exportCsv.ts|dynamic-import|moment|0",
+    "dates|src/lib/dates.ts|import|moment|0",
+    "forms|src/legacy/checkout/LegacyAddressForm.tsx|import|redux-form/lib/Field|0",
+    "forms|src/legacy/checkout/LegacyAddressForm.tsx|import|redux-form|0",
+    "forms|src/lib/forms.ts|export-from|redux-form|0",
+    "http|scripts/fetch-fixtures.cjs|require|request|0",
+    "http|src/api/uploads.ts|import|axios|0"
+  ]
+}

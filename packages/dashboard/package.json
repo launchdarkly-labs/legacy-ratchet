@@ -1,0 +1,30 @@
+{
+  "name": "@legacy-ratchet/dashboard",
+  "version": "0.1.0",
+  "type": "module",
+  "exports": {
+    ".": "./dist-node/index.js",
+    "./template.html": "./dist/index.html"
+  },
+  "files": [
+    "dist",
+    "dist-node"
+  ],
+  "scripts": {
+    "build": "vite build && node scripts/build-node.mjs",
+    "dev": "vite"
+  },
+  "dependencies": {},
+  "devDependencies": {
+    "@legacy-ratchet/core": "workspace:*",
+    "@testing-library/react": "^16.3.0",
+    "@types/react": "^19.1.0",
+    "@types/react-dom": "^19.1.0",
+    "@vitejs/plugin-react": "^6.0.0",
+    "jsdom": "^26.0.0",
+    "react": "^19.1.0",
+    "react-dom": "^19.1.0",
+    "vite": "^8.0.0",
+    "vite-plugin-singlefile": "^2.3.0"
+  }
+}

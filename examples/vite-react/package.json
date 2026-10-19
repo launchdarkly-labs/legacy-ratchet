@@ -1,0 +1,12 @@
+{
+  "name": "@legacy-ratchet-examples/vite-react",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Scanning fixture: a small Vite + React app halfway through three dependency migrations.",
+  "scripts": {
+    "legacy:check": "node ../../packages/cli/dist/bin.js check",
+    "legacy:scan": "node ../../packages/cli/dist/bin.js scan",
+    "legacy:report": "node ../../packages/cli/dist/bin.js report --format html"
+  }
+}

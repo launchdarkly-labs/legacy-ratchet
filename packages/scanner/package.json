@@ -1,0 +1,25 @@
+{
+  "name": "@legacy-ratchet/scanner",
+  "version": "0.2.0",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsc -b"
+  },
+  "dependencies": {
+    "@legacy-ratchet/core": "workspace:*",
+    "fast-glob": "^3.3.3",
+    "typescript": "~5.9.0"
+  },
+  "devDependencies": {}
+}

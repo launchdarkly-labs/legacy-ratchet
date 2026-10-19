@@ -1,0 +1,40 @@
+{
+  "$schema": "../../packages/core/schema.json",
+  "version": 1,
+  "groups": {
+    "dates": {
+      "description": "Replace moment with date-fns across every app and package.",
+      "owner": "@acme/frontend-platform",
+      "old": ["moment"],
+      "new": ["date-fns"],
+      "enforcement": { "mode": "ratchet" },
+      "docs": "https://engineering.example.com/migrations/dates"
+    },
+    "legacy-utils": {
+      "description": "Internal grab-bag of helpers. Inline what you need or use the libraries directly.",
+      "owner": "@acme/frontend-platform",
+      "old": ["@acme/legacy-utils"],
+      "new": [],
+      "enforcement": { "mode": "ratchet", "severity": "warn" }
+    },
+    "http": {
+      "description": "request is deprecated upstream. No new or existing usage outside the documented exception.",
+      "owner": "@acme/api-clients",
+      "old": ["request", "request-promise-native"],
+      "new": ["ky"],
+      "enforcement": { "mode": "ban" },
+      "docs": "https://engineering.example.com/migrations/http"
+    }
+  },
+  "ignore": ["**/__generated__/**", "**/*.stories.tsx"],
+  "exceptions": [
+    {
+      "groupId": "http",
+      "files": ["packages/legacy-utils/src/http.ts"],
+      "reason": "Last request call site. Removed when the reporting service moves to ky.",
+      "owner": "@acme/api-clients",
+      "issue": "https://github.com/acme/monorepo/issues/88",
+      "expires": "2099-06-30"
+    }
+  ]
+}

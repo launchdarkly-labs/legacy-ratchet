@@ -1,0 +1,21 @@
+{
+  "name": "@legacy-ratchet/depcruise",
+  "version": "0.2.0",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": { "types": "./dist/index.d.ts", "default": "./dist/index.js" },
+    "./map": { "types": "./dist/map.d.ts", "default": "./dist/map.js" }
+  },
+  "files": ["dist"],
+  "engines": { "node": "^20.12 || ^22 || >=24" },
+  "scripts": { "build": "tsc -b" },
+  "dependencies": {
+    "@legacy-ratchet/core": "workspace:*",
+    "@legacy-ratchet/scanner": "workspace:*",
+    "dependency-cruiser": "^17.3.2",
+    "typescript": "~5.9.0"
+  },
+  "devDependencies": {}
+}

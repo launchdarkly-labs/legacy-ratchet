@@ -1,0 +1,17 @@
+{
+  "schemaVersion": 2,
+  "configDigest": "sha256:df8e541d6867dc677ae29ceb2d73f23a8301ef1ee3b45bb3b0d43c5d19a04ab9",
+  "scannerVersion": "0.2.0+dependency-cruiser@17.4.3",
+  "generatedAt": "2026-10-19T14:59:53.118Z",
+  "allowed": [
+    "dates|src/components/DateLabel.tsx|import|moment",
+    "dates|src/features/reports/ReportFilters.tsx|import|moment",
+    "dates|src/features/reports/exportCsv.ts|import|moment",
+    "dates|src/lib/dates.ts|import|moment",
+    "forms|src/legacy/checkout/LegacyAddressForm.tsx|import|redux-form",
+    "forms|src/legacy/checkout/LegacyAddressForm.tsx|import|redux-form/lib/Field",
+    "forms|src/lib/forms.ts|import|redux-form",
+    "http|scripts/fetch-fixtures.cjs|require|request",
+    "http|src/api/uploads.ts|import|axios"
+  ]
+}

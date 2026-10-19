@@ -1,0 +1,14 @@
+{
+  "schemaVersion": 2,
+  "configDigest": "sha256:be8db5a78fb29dac98b17fdc789784149080cbbcf9609ad73621432410da1c32",
+  "scannerVersion": "0.2.0+dependency-cruiser@17.4.3",
+  "generatedAt": "2026-10-19T14:59:53.608Z",
+  "allowed": [
+    "dates|apps/web/src/pages/Orders.tsx|import|moment",
+    "dates|packages/legacy-utils/src/dates.ts|import|moment",
+    "dates|packages/ui/src/DatePicker.tsx|import|moment",
+    "http|packages/legacy-utils/src/http.ts|import|request",
+    "legacy-utils|apps/web/src/pages/Orders.tsx|import|@acme/legacy-utils",
+    "legacy-utils|apps/web/src/pages/Settings.tsx|import|@acme/legacy-utils/dates"
+  ]
+}

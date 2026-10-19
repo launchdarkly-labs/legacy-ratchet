@@ -1,0 +1,20 @@
+{
+  "name": "legacy-ratchet-monorepo",
+  "private": true,
+  "type": "module",
+  "packageManager": "pnpm@12.6.0",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "build": "pnpm --recursive --filter \"./packages/*\" run build",
+    "typecheck": "pnpm --filter @legacy-ratchet/dashboard build && tsc -b packages/core packages/scanner packages/depcruise packages/cli packages/eslint-plugin",
+    "test": "vitest run",
+    "lint": "pnpm -r run lint"
+  },
+  "devDependencies": {
+    "@types/node": "^24.0.0",
+    "typescript": "~5.9.0",
+    "vitest": "^5.0.5"
+  }
+}

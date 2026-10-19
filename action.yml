@@ -1,0 +1,57 @@
+name: legacy-ratchet
+description: Fail pull requests that add new imports of deprecated packages listed in legacy.json.
+author: legacy-ratchet contributors
+branding:
+  icon: trending-down
+  color: orange
+
+inputs:
+  working-directory:
+    description: Directory that contains legacy.json and .legacy/baseline.json.
+    required: false
+    default: .
+  base-ref:
+    description: >-
+      Git ref or SHA to compare the baseline against (passed to `legacy check --base`).
+      Fetched automatically if it is missing from a shallow checkout.
+      When empty (for example on push events), baseline verification is skipped.
+    required: false
+    default: ${{ github.event.pull_request.base.sha }}
+  args:
+    description: Extra arguments appended to `legacy check`, split on whitespace.
+    required: false
+    default: ""
+
+runs:
+  using: composite
+  steps:
+    - name: Build legacy-ratchet
+      shell: bash
+      working-directory: ${{ github.action_path }}
+      run: |
+        set -euo pipefail
+        npx --yes pnpm@12.6.0 install --frozen-lockfile
+        npx --yes pnpm@12.6.0 build
+    - name: legacy check
+      shell: bash
+      working-directory: ${{ inputs.working-directory }}
+      env:
+        LEGACY_RATCHET_BIN: ${{ github.action_path }}/packages/cli/dist/bin.js
+        LEGACY_RATCHET_BASE_REF: ${{ inputs.base-ref }}
+        LEGACY_RATCHET_ARGS: ${{ inputs.args }}
+      run: |
+        set -euo pipefail
+        cmd=(node "$LEGACY_RATCHET_BIN" check --format github)
+        if [ -n "$LEGACY_RATCHET_BASE_REF" ]; then
+          if ! git cat-file -e "$LEGACY_RATCHET_BASE_REF^{commit}" 2>/dev/null; then
+            git fetch --no-tags --depth=1 origin "$LEGACY_RATCHET_BASE_REF"
+          fi
+          cmd+=(--base "$LEGACY_RATCHET_BASE_REF")
+        else
+          echo "::notice title=legacy-ratchet::No base-ref given; skipping baseline verification."
+        fi
+        extra=()
+        if [ -n "$LEGACY_RATCHET_ARGS" ]; then
+          read -r -a extra <<< "$LEGACY_RATCHET_ARGS"
+        fi
+        "${cmd[@]}" ${extra[@]+"${extra[@]}"}

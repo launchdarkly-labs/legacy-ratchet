@@ -1,0 +1,38 @@
+{
+  "$schema": "../../packages/core/schema.json",
+  "version": 1,
+  "groups": {
+    "forms": {
+      "description": "Form state moves from redux-form to react-hook-form.",
+      "owner": "@acme/web-platform",
+      "old": ["redux-form"],
+      "new": ["react-hook-form"],
+      "enforcement": { "mode": "ratchet" }
+    },
+    "dates": {
+      "description": "moment is in maintenance mode and is not tree-shakeable.",
+      "owner": "@acme/web-platform",
+      "old": ["moment"],
+      "new": ["date-fns"],
+      "enforcement": { "mode": "ratchet", "severity": "error" },
+      "docs": "https://engineering.example.com/migrations/dates"
+    },
+    "http": {
+      "description": "Standardize on ky. Tracked for visibility only for now.",
+      "owner": "@acme/api-clients",
+      "old": ["request", "axios"],
+      "new": ["ky"],
+      "enforcement": { "mode": "report" }
+    }
+  },
+  "exceptions": [
+    {
+      "groupId": "forms",
+      "files": ["src/legacy/**"],
+      "reason": "The legacy checkout is frozen and will be deleted with the new checkout launch.",
+      "owner": "@acme/checkout",
+      "issue": "https://github.com/acme/web/issues/1234",
+      "expires": "2099-12-31"
+    }
+  ]
+}

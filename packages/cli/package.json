@@ -1,0 +1,36 @@
+{
+  "name": "@legacy-ratchet/cli",
+  "version": "0.1.0",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    },
+    "./depcruise-plugin": {
+      "types": "./dist/depcruise-plugin.d.ts",
+      "default": "./dist/depcruise-plugin.js"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsc -b"
+  },
+  "dependencies": {
+    "@legacy-ratchet/core": "workspace:*",
+    "@legacy-ratchet/depcruise": "workspace:*",
+    "@legacy-ratchet/scanner": "workspace:*",
+    "@legacy-ratchet/dashboard": "workspace:*",
+    "commander": "^14.0.0",
+    "picocolors": "^1.1.1"
+  },
+  "devDependencies": {},
+  "bin": {
+    "legacy": "./dist/bin.js",
+    "legacy-ratchet": "./dist/bin.js"
+  }
+}

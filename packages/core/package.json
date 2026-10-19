@@ -1,0 +1,29 @@
+{
+  "name": "@legacy-ratchet/core",
+  "version": "0.2.0",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    },
+    "./schema.json": "./schema.json"
+  },
+  "files": [
+    "dist",
+    "schema.json"
+  ],
+  "scripts": {
+    "build": "tsc -b",
+    "generate:schema": "UPDATE_SCHEMA=1 pnpm -w exec vitest run --project core packages/core/src/schema.test.ts"
+  },
+  "dependencies": {
+    "picomatch": "^4.0.2",
+    "zod": "^4.0.0"
+  },
+  "devDependencies": {
+    "@types/picomatch": "^4.0.0"
+  }
+}
