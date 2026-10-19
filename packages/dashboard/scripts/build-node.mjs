@@ -2,7 +2,7 @@ import { copyFileSync, existsSync, mkdirSync, readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 
 const pkgDir = fileURLToPath(new URL('..', import.meta.url));
-const placeholder = '__LEGACY_RATCHET_DATA__';
+const placeholder = '__MIGRATION_TRACKER_DATA__';
 const template = `${pkgDir}dist/index.html`;
 
 if (!existsSync(template)) {

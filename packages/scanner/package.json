@@ -1,5 +1,5 @@
 {
-  "name": "@legacy-ratchet/scanner",
+  "name": "@migration-tracker/scanner",
   "version": "0.2.0",
   "type": "module",
   "main": "./dist/index.js",
@@ -17,7 +17,7 @@
     "build": "tsc -b"
   },
   "dependencies": {
-    "@legacy-ratchet/core": "workspace:*",
+    "@migration-tracker/core": "workspace:*",
     "fast-glob": "^3.3.3",
     "typescript": "~5.9.0"
   },

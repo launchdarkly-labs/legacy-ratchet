@@ -1,5 +1,5 @@
 import tsParser from '@typescript-eslint/parser';
-import legacyRatchet from 'eslint-plugin-legacy-ratchet';
+import migrationTracker from 'eslint-plugin-migration-tracker';
 
 export default [
   {
@@ -11,6 +11,6 @@ export default [
   },
   {
     files: ['**/*.{ts,tsx,js,jsx,mjs,cjs}'],
-    ...legacyRatchet.configs.recommended,
+    ...migrationTracker.configs.recommended,
   },
 ];

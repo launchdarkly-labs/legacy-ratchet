@@ -10,10 +10,10 @@ import {
   type ImportSite,
   type LegacyConfig,
   type RawImport,
-} from '@legacy-ratchet/core';
-import { renderHtml, templatePath } from '@legacy-ratchet/dashboard';
-import { fromCruiseResult } from '@legacy-ratchet/depcruise/map';
-import { scanSource, type ScanError } from '@legacy-ratchet/scanner';
+} from '@migration-tracker/core';
+import { renderHtml, templatePath } from '@migration-tracker/dashboard';
+import { fromCruiseResult } from '@migration-tracker/depcruise/map';
+import { scanSource, type ScanError } from '@migration-tracker/scanner';
 import { execFileSync } from 'node:child_process';
 import { appendFileSync, existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
@@ -40,7 +40,7 @@ export interface PluginEnvironment {
 }
 
 export const TS_PRECOMPILATION_MESSAGE =
-  'legacy-ratchet requires tsPreCompilationDeps: true (type-only imports would be dropped)';
+  'migration-tracker requires tsPreCompilationDeps: true (type-only imports would be dropped)';
 
 const NODE_MODULES_SAMPLE = 'node_modules/x/dist/index.js';
 
@@ -77,7 +77,7 @@ function withNewline(s: string): string {
 }
 
 function failure(message: string, details: readonly string[] = []): ReporterOutput {
-  return { output: [`legacy-ratchet: ${message}`, ...details.map((d) => `  ${d}`)].join('\n') + '\n', exitCode: 2 };
+  return { output: [`migration-tracker: ${message}`, ...details.map((d) => `  ${d}`)].join('\n') + '\n', exitCode: 2 };
 }
 
 function tryGit(root: string, args: readonly string[]): string | undefined {
@@ -136,12 +136,12 @@ function writeReport(
     content = `${JSON.stringify(report, null, 2)}\n`;
   } else if (file.endsWith('.html')) {
     if (!existsSync(templatePath())) {
-      notes.push('warning: LEGACY_RATCHET_REPORT: the dashboard template is missing; build @legacy-ratchet/dashboard');
+      notes.push('warning: MIGRATION_TRACKER_REPORT: the dashboard template is missing; build @migration-tracker/dashboard');
       return;
     }
     content = renderHtml(report);
   } else {
-    notes.push(`warning: LEGACY_RATCHET_REPORT must end in .json or .html (got ${file})`);
+    notes.push(`warning: MIGRATION_TRACKER_REPORT must end in .json or .html (got ${file})`);
     return;
   }
   mkdirSync(path.dirname(file), { recursive: true });
@@ -161,15 +161,15 @@ function check(result: CruiseResult, environment: PluginEnvironment): ReporterOu
   const optionsUsed = result.summary?.optionsUsed ?? {};
   const baseDir = path.resolve(cwd, optionsUsed.baseDir ?? cwd);
 
-  const rawFormat = env.LEGACY_RATCHET_FORMAT || 'text';
+  const rawFormat = env.MIGRATION_TRACKER_FORMAT || 'text';
   if (!CHECK_FORMATS.includes(rawFormat as CheckFormat)) {
-    return failure(`unknown LEGACY_RATCHET_FORMAT "${rawFormat}" (expected ${CHECK_FORMATS.join(', ')})`);
+    return failure(`unknown MIGRATION_TRACKER_FORMAT "${rawFormat}" (expected ${CHECK_FORMATS.join(', ')})`);
   }
   const format = rawFormat as CheckFormat;
 
-  const location = locateConfig(env.LEGACY_RATCHET_CONFIG, cwd, baseDir);
+  const location = locateConfig(env.MIGRATION_TRACKER_CONFIG, cwd, baseDir);
   if (!location) {
-    return failure(`no legacy.json found at or above ${baseDir} (set LEGACY_RATCHET_CONFIG to point at one)`);
+    return failure(`no migrations.json found at or above ${baseDir} (set MIGRATION_TRACKER_CONFIG to point at one)`);
   }
   if (optionsUsed.tsPreCompilationDeps !== true) return failure(TS_PRECOMPILATION_MESSAGE);
   const filterProblem = packageFilterProblem(optionsUsed);
@@ -181,7 +181,7 @@ function check(result: CruiseResult, environment: PluginEnvironment): ReporterOu
   const missing = ratchetGroupsWithoutBaseline(config, baseline);
   if (missing.length > 0) {
     return failure(
-      `no baseline found at ${path.join(root, BASELINE_PATH)}, but ${missing.join(', ')} use ratchet mode. Run "legacy baseline create" and commit it.`,
+      `no baseline found at ${path.join(root, BASELINE_PATH)}, but ${missing.join(', ')} use ratchet mode. Run "migration-tracker baseline create" and commit it.`,
     );
   }
 
@@ -212,8 +212,8 @@ function check(result: CruiseResult, environment: PluginEnvironment): ReporterOu
   if (format === 'github' && env.GITHUB_STEP_SUMMARY) {
     appendFileSync(env.GITHUB_STEP_SUMMARY, `${formatCheckMarkdown(outcome).trimEnd()}\n`, 'utf8');
   }
-  if (env.LEGACY_RATCHET_REPORT) {
-    writeReport(path.resolve(cwd, env.LEGACY_RATCHET_REPORT), root, config, located.sites, mapped.imports, notes);
+  if (env.MIGRATION_TRACKER_REPORT) {
+    writeReport(path.resolve(cwd, env.MIGRATION_TRACKER_REPORT), root, config, located.sites, mapped.imports, notes);
   }
   return {
     output: withNewline(output) + notes.map((n) => `${n}\n`).join(''),
@@ -221,7 +221,7 @@ function check(result: CruiseResult, environment: PluginEnvironment): ReporterOu
   };
 }
 
-export default function legacyRatchetReporter(result: CruiseResult): ReporterOutput {
+export default function migrationTrackerReporter(result: CruiseResult): ReporterOutput {
   try {
     if ((result?.modules?.length ?? 0) === 0 && Object.keys(result?.summary?.optionsUsed ?? {}).length === 0) {
       return { output: '', exitCode: 0 };

@@ -1,4 +1,4 @@
-import type { EnforcementMode } from '@legacy-ratchet/core';
+import type { EnforcementMode } from '@migration-tracker/core';
 import type { ReactNode } from 'react';
 
 import { formatPct } from '../progress';

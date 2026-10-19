@@ -1,9 +1,9 @@
 # dependency-cruiser
 
-legacy-ratchet uses [dependency-cruiser](https://github.com/sverweij/dependency-cruiser) (depcruise) to find imports. There are two ways to run it:
+migration-tracker uses [dependency-cruiser](https://github.com/sverweij/dependency-cruiser) (depcruise) to find imports. There are two ways to run it:
 
-1. **CLI engine.** `legacy check`, `scan`, `report` and the `baseline` commands run depcruise themselves. This is the default and needs no setup.
-2. **Reporter plugin.** If you already run depcruise, for example to validate architecture rules, you can run legacy-ratchet as an output plugin of your own depcruise run. Your config, resolve settings and cache are used as they are.
+1. **CLI engine.** `migration-tracker check`, `scan`, `report` and the `baseline` commands run depcruise themselves. This is the default and needs no setup.
+2. **Reporter plugin.** If you already run depcruise, for example to validate architecture rules, you can run migration-tracker as an output plugin of your own depcruise run. Your config, resolve settings and cache are used as they are.
 
 Both modes produce the same site ids as each other, as `--engine scanner`, and as the [ESLint rule](eslint.md). Ids are file-level because depcruise merges duplicate imports and reports no positions; see [ratcheting.md](ratcheting.md#why-file-level).
 
@@ -17,15 +17,15 @@ Options and environment variables (`--engine`, `--depcruise-config`, `--ts-confi
 
 ```sh
 depcruise --config .dependency-cruiser.js \
-  --output-type "plugin:$(legacy depcruise-plugin-path)" \
+  --output-type "plugin:$(migration-tracker depcruise-plugin-path)" \
   src
 ```
 
-`legacy depcruise-plugin-path` prints the absolute path of the plugin file inside the installed CLI (`dist/depcruise-plugin.js`). The plugin is also exported as `@legacy-ratchet/cli/depcruise-plugin`, but pass the absolute path to depcruise: it imports plugins from its own install directory, and under pnpm's strict layout that directory cannot see your project's dev dependencies. A relative path fails the same way, with `ERROR: Could not find reporter plugin`.
+`migration-tracker depcruise-plugin-path` prints the absolute path of the plugin file inside the installed CLI (`dist/depcruise-plugin.js`). The plugin is also exported as `@migration-tracker/cli/depcruise-plugin`, but pass the absolute path to depcruise: it imports plugins from its own install directory, and under pnpm's strict layout that directory cannot see your project's dev dependencies. A relative path fails the same way, with `ERROR: Could not find reporter plugin`.
 
-The plugin replaces depcruise's output for that run. It prints the same output as `legacy check` and returns the same exit code. It checks only the files depcruise cruised: baseline entries for other files are neither retired nor reported. To check a subset, pass only those paths to depcruise.
+The plugin replaces depcruise's output for that run. It prints the same output as `migration-tracker check` and returns the same exit code. It checks only the files depcruise cruised: baseline entries for other files are neither retired nor reported. To check a subset, pass only those paths to depcruise.
 
-The plugin does not verify the baseline against a base ref. Run `legacy baseline verify --base <ref>` separately in CI.
+The plugin does not verify the baseline against a base ref. Run `migration-tracker baseline verify --base <ref>` separately in CI.
 
 ### Required depcruise options
 
@@ -56,13 +56,13 @@ module.exports = {
 
 | Variable | Description |
 |---|---|
-| `LEGACY_RATCHET_CONFIG` | Path to `legacy.json`, absolute or relative to the current directory. Its directory is the root. Without it, the plugin looks for `legacy.json` in depcruise's `baseDir` (default: the current directory) and its parents. |
-| `LEGACY_RATCHET_FORMAT` | `text` (default), `json`, `markdown` or `github`, as in `legacy check --format`. Any other value exits 2. |
+| `MIGRATION_TRACKER_CONFIG` | Path to `migrations.json`, absolute or relative to the current directory. Its directory is the root. Without it, the plugin looks for `migrations.json` in depcruise's `baseDir` (default: the current directory) and its parents. |
+| `MIGRATION_TRACKER_FORMAT` | `text` (default), `json`, `markdown` or `github`, as in `migration-tracker check --format`. Any other value exits 2. |
 | `GITHUB_STEP_SUMMARY` | With the `github` format, the markdown summary is appended to this file, as the CLI does. |
-| `LEGACY_RATCHET_REPORT` | Also write a report: a path ending in `.json` writes a snapshot, `.html` writes the [dashboard](dashboard.md). Relative to the current directory. Any other extension adds a warning to the output. |
+| `MIGRATION_TRACKER_REPORT` | Also write a report: a path ending in `.json` writes a snapshot, `.html` writes the [dashboard](dashboard.md). Relative to the current directory. Any other extension adds a warning to the output. |
 | `NO_COLOR`, `FORCE_COLOR` | Text output is colored on a TTY. `NO_COLOR` turns color off and `FORCE_COLOR` turns it on. |
 
-The baseline is read from `.legacy/baseline.json` under the root. If a `ratchet` group has no baseline, the plugin exits 2. Create the baseline with the CLI (`legacy baseline create`); the plugin never writes it.
+The baseline is read from `.migrations/baseline.json` under the root. If a `ratchet` group has no baseline, the plugin exits 2. Create the baseline with the CLI (`migration-tracker baseline create`); the plugin never writes it.
 
 ### Exit codes
 
@@ -70,7 +70,7 @@ The baseline is read from `.legacy/baseline.json` under the root. If a `ratchet`
 |---|---|
 | `0` | No failing violations. |
 | `1` | The check failed: a new or banned import with severity `error`, or an expired exception. |
-| `2` | No `legacy.json`, an invalid config or baseline, a missing baseline, an unknown `LEGACY_RATCHET_FORMAT`, or depcruise options that drop imports. The output starts with `legacy-ratchet:` and says what to fix. |
+| `2` | No `migrations.json`, an invalid config or baseline, a missing baseline, an unknown `MIGRATION_TRACKER_FORMAT`, or depcruise options that drop imports. The output starts with `migration-tracker:` and says what to fix. |
 
 ### One output type per run
 
@@ -89,11 +89,11 @@ Fix it by making `typescript` resolvable from dependency-cruiser's directory. A 
 
 If your repository already runs dependency-cruiser, check that its config passes the plugin's checks: `tsPreCompilationDeps: true`, no `includeOnly`, and no `exclude` that matches `node_modules`.
 
-1. Add a `legacy.json` at the repository root, then create and commit a baseline:
+1. Add a `migrations.json` at the repository root, then create and commit a baseline:
 
    ```sh
-   legacy validate
-   legacy baseline create
+   migration-tracker validate
+   migration-tracker baseline create
    ```
 
    The CLI scans every JS and TS file under the root, so list directories your depcruise run doesn't cover under `ignore`.
@@ -101,9 +101,9 @@ If your repository already runs dependency-cruiser, check that its config passes
 2. Run the plugin inside your own depcruise run:
 
    ```sh
-   depcruise --output-type "plugin:$(legacy depcruise-plugin-path)" src
+   depcruise --output-type "plugin:$(migration-tracker depcruise-plugin-path)" src
    ```
 
-   depcruise picks up its config from the repository root, and the plugin finds `legacy.json` there.
+   depcruise picks up its config from the repository root, and the plugin finds `migrations.json` there.
 
-In CI, run the same command with `LEGACY_RATCHET_FORMAT=github`. If the job already restores a depcruise cache, pass the same `--cache` arguments so the run can reuse it. Add a `legacy baseline verify --base <base sha>` step next to it.
+In CI, run the same command with `MIGRATION_TRACKER_FORMAT=github`. If the job already restores a depcruise cache, pass the same `--cache` arguments so the run can reuse it. Add a `migration-tracker baseline verify --base <base sha>` step next to it.

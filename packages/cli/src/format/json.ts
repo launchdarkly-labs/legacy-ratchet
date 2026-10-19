@@ -1,5 +1,5 @@
-import type { ExpiredException, ImportSite } from '@legacy-ratchet/core';
-import type { ScanError } from '@legacy-ratchet/scanner';
+import type { ExpiredException, ImportSite } from '@migration-tracker/core';
+import type { ScanError } from '@migration-tracker/scanner';
 import type { CheckOutcome } from './types.js';
 
 export function siteJson(site: ImportSite): Record<string, unknown> {

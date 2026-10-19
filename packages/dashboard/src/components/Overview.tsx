@@ -165,7 +165,7 @@ export function Overview({ snapshot, totals, rows, focusGroupId, onOpenGroup }: 
   return (
     <>
       <header className="overview__header">
-        <h1 className="overview__title">Legacy dependency report</h1>
+        <h1 className="overview__title">Migration tracker</h1>
         <p className="muted small" data-testid="generated">
           Generated <time dateTime={snapshot.generatedAt}>{formatDate(snapshot.generatedAt)}</time>
           <Revision snapshot={snapshot} />

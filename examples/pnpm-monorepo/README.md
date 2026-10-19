@@ -1,9 +1,9 @@
 # Example: pnpm monorepo
 
-One `legacy.json` at the repository root governs every app and package. Paths in the baseline, in `ignore`, and in exception `files` globs are all relative to that root. Per-package policies are not supported in the MVP.
+One `migrations.json` at the repository root governs every app and package. Paths in the baseline, in `ignore`, and in exception `files` globs are all relative to that root. Per-package policies are not supported in the MVP.
 
 ```
-legacy.json              one policy for the whole repo
+migrations.json              one policy for the whole repo
 apps/web                 app that still uses moment and @acme/legacy-utils
 packages/ui              shared components (one type-only moment import)
 packages/legacy-utils    the internal package being retired
@@ -22,11 +22,11 @@ Things to notice:
 - **`ignore`.** `**/__generated__/**` and `**/*.stories.tsx` are skipped, so `apps/web/src/__generated__/api.ts` and `packages/ui/src/DatePicker.stories.tsx` are not counted even though they import `moment`.
 - **`ban` with an exception.** `ban` fails every site regardless of the baseline. The last `request` call site, `packages/legacy-utils/src/http.ts`, is allowed by a dated exception. Remove the exception and `check` fails.
 
-legacy-ratchet finds 6 legacy sites: 3 in `dates`, 2 in `legacy-utils`, 1 in `http` (excepted).
+migration-tracker finds 6 legacy sites: 3 in `dates`, 2 in `legacy-utils`, 1 in `http` (excepted).
 
 ## Baseline
 
-`.legacy/baseline.json` is generated with the CLI. From the repository root, after `pnpm build`:
+`.migrations/baseline.json` is generated with the CLI. From the repository root, after `pnpm build`:
 
 ```sh
 node packages/cli/dist/bin.js check --root examples/pnpm-monorepo

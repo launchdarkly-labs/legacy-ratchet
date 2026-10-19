@@ -48,7 +48,7 @@ export async function run(argv: string[], io: Io = defaultIo()): Promise<number>
       exitCode = await fn(command.optsWithGlobals() as O, io);
     };
 
-  const program = new Command('legacy')
+  const program = new Command('migration-tracker')
     .description('Make dependency migrations declarative and enforceable.')
     .exitOverride()
     .configureOutput({
@@ -57,17 +57,17 @@ export async function run(argv: string[], io: Io = defaultIo()): Promise<number>
     })
     .version(CLI_VERSION, '-V, --version', 'print the CLI version')
     .option('--root <dir>', 'repository root (default: current directory)')
-    .option('--config <path>', 'config file (default: <root>/legacy.json)')
+    .option('--config <path>', 'config file (default: <root>/migrations.json)')
     .option('--no-color', 'disable colored output')
     .option('--quiet', 'only print violations and errors');
 
   program
     .command('init')
-    .description('create legacy.json and .legacy/README.md')
-    .option('--force', 'overwrite an existing legacy.json')
+    .description('create migrations.json and .migrations/README.md')
+    .option('--force', 'overwrite an existing migrations.json')
     .action(action(initCommand));
 
-  program.command('validate').description('validate legacy.json').action(action(validateCommand));
+  program.command('validate').description('validate migrations.json').action(action(validateCommand));
 
   addEngineOptions(program
     .command('scan')
@@ -78,7 +78,7 @@ export async function run(argv: string[], io: Io = defaultIo()): Promise<number>
     .option('--changed-since <ref>', 'only scan files changed since a git ref'))
     .action(action(scanCommand));
 
-  const baseline = program.command('baseline').description('manage .legacy/baseline.json');
+  const baseline = program.command('baseline').description('manage .migrations/baseline.json');
   addEngineOptions(baseline
     .command('create')
     .description('grandfather all current legacy import sites')
@@ -111,9 +111,9 @@ export async function run(argv: string[], io: Io = defaultIo()): Promise<number>
     .command('report')
     .description('build an HTML or JSON report')
     .option('--format <format>', 'html or json', 'html')
-    .option('--output <file>', 'output file (html default: legacy-report.html)')
+    .option('--output <file>', 'output file (html default: migration-report.html)')
     .option('--append-history', 'append a snapshot to the history file')
-    .option('--history <path>', 'history file to read and append to (default: <root>/.legacy/history.jsonl)')
+    .option('--history <path>', 'history file to read and append to (default: <root>/.migrations/history.jsonl)')
     .option('--source-url <template>', 'source link template with {sha}, {path} and {line}, stored in the report')
     .option('--codeowners <path>', 'CODEOWNERS file (default: .github/CODEOWNERS, CODEOWNERS or docs/CODEOWNERS under --root)')
     .option('--no-codeowners', 'do not read a CODEOWNERS file'))

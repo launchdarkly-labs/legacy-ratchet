@@ -26,10 +26,10 @@ const noBaseline = makeFixture();
 const invalidConfig = makeFixture({ configText: JSON.stringify({ version: 2, groups: {} }) });
 const brokenJson = makeFixture({ configText: '{ not json' });
 const invalidBaseline = makeFixture({ baselineText: '{"schemaVersion": 9}' });
-const noConfigDir = realpathSync(mkdtempSync(path.join(os.tmpdir(), 'legacy-ratchet-noconfig-')));
+const noConfigDir = realpathSync(mkdtempSync(path.join(os.tmpdir(), 'migration-tracker-noconfig-')));
 const customLayout = makeFixture({
   allowed: [],
-  files: { 'config/legacy-ratchet.json': JSON.stringify(CONFIG) },
+  files: { 'config/migration-tracker.json': JSON.stringify(CONFIG) },
 });
 
 const f = (root: string, rel: string): string => path.join(root, rel);
@@ -76,25 +76,25 @@ ruleTester.run('no-legacy-imports', noLegacyImports, {
       name: 'every occurrence suppressed silences the site',
       filename: f(withBaseline, 'src/b.ts'),
       code: [
-        '// legacy-ratchet-disable-next-line forms -- legacy',
+        '// migration-tracker-disable-next-line forms -- legacy',
         "const a = require('redux-form');",
-        "const b = require('redux-form'); // legacy-ratchet-disable-line -- legacy too",
+        "const b = require('redux-form'); // migration-tracker-disable-line -- legacy too",
       ].join('\n'),
     },
     {
       name: 'every ban occurrence suppressed silences the site',
       filename: f(withBaseline, 'src/b.ts'),
       code: [
-        '// legacy-ratchet-disable-next-line http -- vendor shim',
+        '// migration-tracker-disable-next-line http -- vendor shim',
         "import request from 'request';",
-        '// legacy-ratchet-disable-next-line http -- vendor shim',
+        '// migration-tracker-disable-next-line http -- vendor shim',
         "export { get } from 'request';",
       ].join('\n'),
     },
     {
       name: 'exceptions silence every occurrence, suppressed or not',
       filename: f(withBaseline, 'src/legacy/wizard.ts'),
-      code: "import { reduxForm } from 'redux-form';\n// legacy-ratchet-disable-next-line forms\nconst lazy = import('redux-form');",
+      code: "import { reduxForm } from 'redux-form';\n// migration-tracker-disable-next-line forms\nconst lazy = import('redux-form');",
     },
     {
       name: 'ratchet without baseline stays silent with several occurrences',
@@ -108,26 +108,26 @@ ruleTester.run('no-legacy-imports', noLegacyImports, {
     {
       name: 'disable-next-line with reason',
       filename: f(withBaseline, 'src/b.ts'),
-      code: "// legacy-ratchet-disable-next-line forms -- migrating in JIRA-1\nimport { reduxForm } from 'redux-form';",
+      code: "// migration-tracker-disable-next-line forms -- migrating in JIRA-1\nimport { reduxForm } from 'redux-form';",
     },
     {
       name: 'disable-line with reason (block comment, all groups)',
       filename: f(withBaseline, 'src/b.ts'),
-      code: "import { reduxForm } from 'redux-form'; /* legacy-ratchet-disable-line -- temporary */",
+      code: "import { reduxForm } from 'redux-form'; /* migration-tracker-disable-line -- temporary */",
     },
     {
       name: 'disable-next-line above a require call inside a declaration',
       filename: f(withBaseline, 'src/b.ts'),
-      code: "const x = {\n  // legacy-ratchet-disable-next-line forms, dates -- legacy\n  a: require('redux-form'),\n};",
+      code: "const x = {\n  // migration-tracker-disable-next-line forms, dates -- legacy\n  a: require('redux-form'),\n};",
     },
     {
       name: 'suppression also silences ban mode',
       filename: f(withBaseline, 'src/b.ts'),
-      code: "// legacy-ratchet-disable-next-line http -- vendor shim\nimport request from 'request';",
+      code: "// migration-tracker-disable-next-line http -- vendor shim\nimport request from 'request';",
     },
     { name: 'config.ignore skips the file', filename: f(withBaseline, 'generated/api.ts'), code: "import request from 'request';\nimport 'redux-form';" },
     { name: 'exceptions silence', filename: f(withBaseline, 'src/legacy/wizard.ts'), code: "import { reduxForm } from 'redux-form';" },
-    { name: 'no legacy.json is a no-op', filename: f(noConfigDir, 'src/a.ts'), code: "import request from 'request';" },
+    { name: 'no migrations.json is a no-op', filename: f(noConfigDir, 'src/a.ts'), code: "import request from 'request';" },
     {
       name: 'non-import forms are ignored',
       filename: f(withBaseline, 'src/b.ts'),
@@ -191,7 +191,7 @@ ruleTester.run('no-legacy-imports', noLegacyImports, {
     {
       name: 'a partly suppressed site reports only the unsuppressed occurrences',
       filename: f(withBaseline, 'src/b.ts'),
-      code: "// legacy-ratchet-disable-next-line forms -- legacy\nconst a = require('redux-form');\nconst b = require('redux-form');",
+      code: "// migration-tracker-disable-next-line forms -- legacy\nconst a = require('redux-form');\nconst b = require('redux-form');",
       errors: [{ messageId: 'newImport', line: 3, column: 19 }],
     },
     {
@@ -215,16 +215,16 @@ ruleTester.run('no-legacy-imports', noLegacyImports, {
     {
       name: 'a partly suppressed ban site reports only the unsuppressed occurrence',
       filename: f(withBaseline, 'src/b.ts'),
-      code: "import request from 'request';\n// legacy-ratchet-disable-next-line http -- vendor shim\nexport { get } from 'request';",
+      code: "import request from 'request';\n// migration-tracker-disable-next-line http -- vendor shim\nexport { get } from 'request';",
       errors: [{ messageId: 'banned', line: 1 }],
     },
     {
       name: 'an occurrence suppressed without a reason is reported alongside the rest',
       filename: f(withBaseline, 'src/b.ts'),
       code: [
-        '// legacy-ratchet-disable-next-line forms',
+        '// migration-tracker-disable-next-line forms',
         "import { reduxForm } from 'redux-form';",
-        '// legacy-ratchet-disable-next-line forms -- legacy',
+        '// migration-tracker-disable-next-line forms -- legacy',
         "const lazy = import('redux-form');",
       ].join('\n'),
       errors: [{ messageId: 'newImport', line: 2 }],
@@ -233,9 +233,9 @@ ruleTester.run('no-legacy-imports', noLegacyImports, {
       name: 'an occurrence suppressed for another group is still reported',
       filename: f(withBaseline, 'src/b.ts'),
       code: [
-        '// legacy-ratchet-disable-next-line dates -- wrong group',
+        '// migration-tracker-disable-next-line dates -- wrong group',
         "import { reduxForm } from 'redux-form';",
-        '// legacy-ratchet-disable-next-line forms -- legacy',
+        '// migration-tracker-disable-next-line forms -- legacy',
         "const lazy = import('redux-form');",
       ].join('\n'),
       errors: [{ messageId: 'newImport', line: 2 }],
@@ -270,19 +270,19 @@ ruleTester.run('no-legacy-imports', noLegacyImports, {
     {
       name: 'suppression without reason does not silence',
       filename: f(withBaseline, 'src/b.ts'),
-      code: "// legacy-ratchet-disable-next-line forms\nimport { reduxForm } from 'redux-form';",
+      code: "// migration-tracker-disable-next-line forms\nimport { reduxForm } from 'redux-form';",
       errors: [{ messageId: 'newImport', line: 2 }],
     },
     {
       name: 'suppression for another group does not silence',
       filename: f(withBaseline, 'src/b.ts'),
-      code: "import { reduxForm } from 'redux-form'; // legacy-ratchet-disable-line dates -- nope",
+      code: "import { reduxForm } from 'redux-form'; // migration-tracker-disable-line dates -- nope",
       errors: [{ messageId: 'newImport' }],
     },
     {
       name: 'disable-next-line two lines above does not apply',
       filename: f(withBaseline, 'src/b.ts'),
-      code: "// legacy-ratchet-disable-next-line -- too far\n\nimport { reduxForm } from 'redux-form';",
+      code: "// migration-tracker-disable-next-line -- too far\n\nimport { reduxForm } from 'redux-form';",
       errors: [{ messageId: 'newImport' }],
     },
     {
@@ -308,17 +308,17 @@ ruleTester.run('no-legacy-imports', noLegacyImports, {
     {
       name: 'JSX file',
       filename: f(withBaseline, 'src/Form.tsx'),
-      code: "import { reduxForm } from 'redux-form';\nexport const F = () => <div>{/* legacy-ratchet-disable-next-line */}</div>;",
+      code: "import { reduxForm } from 'redux-form';\nexport const F = () => <div>{/* migration-tracker-disable-next-line */}</div>;",
       errors: [{ messageId: 'newImport', line: 1 }],
     },
     {
-      name: 'invalid legacy.json → single Program report',
+      name: 'invalid migrations.json → single Program report',
       filename: f(invalidConfig, 'src/a.ts'),
       code: "import { reduxForm } from 'redux-form';\nimport request from 'request';",
       errors: [{ messageId: 'invalidConfig', line: 1, column: 1 }],
     },
     {
-      name: 'unparsable legacy.json → single Program report',
+      name: 'unparsable migrations.json → single Program report',
       filename: f(brokenJson, 'src/a.ts'),
       code: "import { reduxForm } from 'redux-form';",
       errors: [{ messageId: 'invalidConfig' }],
@@ -333,14 +333,14 @@ ruleTester.run('no-legacy-imports', noLegacyImports, {
       name: 'configPath option sets the root to its directory',
       filename: f(customLayout, 'config/x.ts'),
       code: "import request from 'request';",
-      options: [{ configPath: f(customLayout, 'config/legacy-ratchet.json') }],
+      options: [{ configPath: f(customLayout, 'config/migration-tracker.json') }],
       errors: [{ messageId: 'banned' }],
     },
     {
       name: 'root option with baselinePath',
       filename: f(noConfigDir, 'src/x.ts'),
       code: "import { reduxForm } from 'redux-form';",
-      options: [{ root: noConfigDir, configPath: f(withBaseline, 'legacy.json'), baselinePath: f(withBaseline, '.legacy/baseline.json') }],
+      options: [{ root: noConfigDir, configPath: f(withBaseline, 'migrations.json'), baselinePath: f(withBaseline, '.migrations/baseline.json') }],
       errors: [{ messageId: 'newImport' }],
     },
   ],

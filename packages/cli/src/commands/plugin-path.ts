@@ -11,6 +11,6 @@ export function depcruisePluginPath(): string {
 export const depcruisePluginPathCommand = withErrors(async (_options: GlobalOptions, io: Io): Promise<number> => {
   const file = depcruisePluginPath();
   io.stdout(`${file}\n`);
-  if (!existsSync(file)) io.stderr(`warning: ${file} does not exist yet; build @legacy-ratchet/cli first\n`);
+  if (!existsSync(file)) io.stderr(`warning: ${file} does not exist yet; build @migration-tracker/cli first\n`);
   return 0;
 });

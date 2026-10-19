@@ -135,16 +135,16 @@ describe('overview', () => {
 
   it('shows the empty state when the data element still holds the placeholder', () => {
     document.body.innerHTML =
-      '<script id="legacy-ratchet-data" type="application/json">__LEGACY_RATCHET_DATA__</script>';
+      '<script id="migration-tracker-data" type="application/json">__MIGRATION_TRACKER_DATA__</script>';
     const state = readSnapshot(document);
     expect(state.status).toBe('missing');
     render(<App state={state} />);
     expect(screen.getByRole('heading', { name: 'No report data' })).toBeTruthy();
-    expect(screen.getByText('legacy report --format html')).toBeTruthy();
+    expect(screen.getByText('migration-tracker report --format html')).toBeTruthy();
   });
 
   it('shows the empty state with a reason when the data is invalid', () => {
-    document.body.innerHTML = '<script id="legacy-ratchet-data" type="application/json">{nope</script>';
+    document.body.innerHTML = '<script id="migration-tracker-data" type="application/json">{nope</script>';
     render(<App state={readSnapshot(document)} />);
     expect(screen.getByText(/not valid JSON/)).toBeTruthy();
   });

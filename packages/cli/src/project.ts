@@ -7,9 +7,9 @@ import {
   type ImportSite,
   type LegacyConfig,
   type RawImport,
-} from '@legacy-ratchet/core';
-import { engineVersion, extractWithDepcruise, type ExtractOptions, type ExtractResult } from '@legacy-ratchet/depcruise';
-import { listFiles, scanFiles, scanFilesAt, SCANNER_VERSION, type ScanError } from '@legacy-ratchet/scanner';
+} from '@migration-tracker/core';
+import { engineVersion, extractWithDepcruise, type ExtractOptions, type ExtractResult } from '@migration-tracker/depcruise';
+import { listFiles, scanFiles, scanFilesAt, SCANNER_VERSION, type ScanError } from '@migration-tracker/scanner';
 import { CliError } from './errors.js';
 import { changedFiles } from './git.js';
 import type { Context } from './load.js';

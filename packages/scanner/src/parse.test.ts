@@ -1,4 +1,4 @@
-import type { RawImport } from '@legacy-ratchet/core';
+import type { RawImport } from '@migration-tracker/core';
 import { describe, expect, it } from 'vitest';
 import { scanSource } from './index.js';
 
@@ -212,7 +212,7 @@ describe('suppression directives inside JSX text', () => {
     const code = [
       'export const A = () => (',
       '  <div>',
-      '    // legacy-ratchet-disable-next-line -- not a comment',
+      '    // migration-tracker-disable-next-line -- not a comment',
       "    {require('moment')}",
       '  </div>',
       ');',
@@ -226,7 +226,7 @@ describe('suppression directives inside JSX text', () => {
     const code = [
       'export const A = () => (',
       '  <div>',
-      '    {/* legacy-ratchet-disable-next-line -- real */}',
+      '    {/* migration-tracker-disable-next-line -- real */}',
       "    {require('moment')}",
       '  </div>',
       ');',

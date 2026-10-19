@@ -1,4 +1,4 @@
-import type { CheckResult, ImportSite, Violation } from '@legacy-ratchet/core';
+import type { CheckResult, ImportSite, Violation } from '@migration-tracker/core';
 import { describe, expect, it } from 'vitest';
 
 import { createColors } from '../io.js';
@@ -45,8 +45,8 @@ const c = createColors(false);
 
 describe('formatters with unlocated sites', () => {
   it('github falls back to a file-level annotation', () => {
-    expect(formatCheckGithub(outcome, { prefix: '', baselinePath: '.legacy/baseline.json' }).split('\n')[0]).toBe(
-      '::error file=src/a.ts,title=legacy-ratchet/forms::New import of "redux-form" is not allowed.',
+    expect(formatCheckGithub(outcome, { prefix: '', baselinePath: '.migrations/baseline.json' }).split('\n')[0]).toBe(
+      '::error file=src/a.ts,title=migration-tracker/forms::New import of "redux-form" is not allowed.',
     );
   });
 

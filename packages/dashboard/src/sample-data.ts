@@ -1,4 +1,4 @@
-import type { EnforcementMode, ImportKind, ImportSite, InlineSuppression } from '@legacy-ratchet/core';
+import type { EnforcementMode, ImportKind, ImportSite, InlineSuppression } from '@migration-tracker/core';
 
 import { type DashboardGroup, directoryOf, ownerOf, type SeriesSnapshot, siteKindOf, siteOwners } from './model';
 

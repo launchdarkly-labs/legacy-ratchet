@@ -1,5 +1,5 @@
 {
-  "name": "@legacy-ratchet/dashboard",
+  "name": "@migration-tracker/dashboard",
   "version": "0.1.0",
   "type": "module",
   "exports": {
@@ -16,7 +16,7 @@
   },
   "dependencies": {},
   "devDependencies": {
-    "@legacy-ratchet/core": "workspace:*",
+    "@migration-tracker/core": "workspace:*",
     "@testing-library/react": "^16.3.0",
     "@types/react": "^19.1.0",
     "@types/react-dom": "^19.1.0",

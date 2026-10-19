@@ -8,22 +8,22 @@ export const rules = {
   'no-legacy-imports': noLegacyImports,
 };
 
-export interface LegacyRatchetPlugin {
+export interface MigrationTrackerPlugin {
   meta: { name: string; version: string };
   rules: typeof rules;
   configs: { recommended: TSESLint.FlatConfig.Config };
 }
 
-const plugin: LegacyRatchetPlugin = {
+const plugin: MigrationTrackerPlugin = {
   meta: { name, version },
   rules,
   configs: { recommended: {} },
 };
 
 plugin.configs.recommended = {
-  name: 'legacy-ratchet/recommended',
-  plugins: { 'legacy-ratchet': plugin as unknown as TSESLint.FlatConfig.Plugin },
-  rules: { 'legacy-ratchet/no-legacy-imports': 'error' },
+  name: 'migration-tracker/recommended',
+  plugins: { 'migration-tracker': plugin as unknown as TSESLint.FlatConfig.Plugin },
+  rules: { 'migration-tracker/no-legacy-imports': 'error' },
 };
 
 export default plugin;

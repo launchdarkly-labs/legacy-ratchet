@@ -14,7 +14,7 @@ import {
   type HistoryEntry,
   type LegacyConfig,
   type ValidationIssue,
-} from '@legacy-ratchet/core';
+} from '@migration-tracker/core';
 import { CliError, errorMessage } from './errors.js';
 import { colorEnabled, createColors, type Colors, type Io } from './io.js';
 
@@ -92,7 +92,7 @@ export async function readConfig(ctx: Context): Promise<ConfigLoad> {
     raw = await readFile(ctx.configPath, 'utf8');
   } catch (err) {
     if (isNotFound(err)) {
-      throw new CliError(`No config found at ${displayPath(ctx, ctx.configPath)}. Run "legacy init" to create one.`);
+      throw new CliError(`No config found at ${displayPath(ctx, ctx.configPath)}. Run "migration-tracker init" to create one.`);
     }
     throw new CliError(`Could not read ${displayPath(ctx, ctx.configPath)}: ${errorMessage(err)}`);
   }
@@ -101,7 +101,7 @@ export async function readConfig(ctx: Context): Promise<ConfigLoad> {
 
 function configOrThrow(result: ConfigLoad, label: string): LegacyConfig {
   if (!result.ok) {
-    throw new CliError(`Invalid config ${label} (run "legacy validate" for details)`, {
+    throw new CliError(`Invalid config ${label} (run "migration-tracker validate" for details)`, {
       details: result.issues.map(formatIssue),
     });
   }
@@ -139,7 +139,7 @@ export async function loadBaseline(ctx: Context): Promise<Baseline | undefined> 
     upgradeWarned.add(ctx);
     if (!ctx.quiet) {
       ctx.io.stderr(
-        `${ctx.color.yellow('⚠')} ${displayPath(ctx, file)} uses schemaVersion 1 site ids; run "legacy baseline migrate" to upgrade it.\n`,
+        `${ctx.color.yellow('⚠')} ${displayPath(ctx, file)} uses schemaVersion 1 site ids; run "migration-tracker baseline migrate" to upgrade it.\n`,
       );
     }
   }
@@ -151,7 +151,7 @@ const upgradeWarned = new WeakSet<Context>();
 export async function requireBaseline(ctx: Context): Promise<Baseline> {
   const baseline = await loadBaseline(ctx);
   if (!baseline) {
-    throw new CliError(`No baseline found at ${displayPath(ctx, baselineFile(ctx))}. Run "legacy baseline create" first.`);
+    throw new CliError(`No baseline found at ${displayPath(ctx, baselineFile(ctx))}. Run "migration-tracker baseline create" first.`);
   }
   return baseline;
 }
@@ -251,7 +251,7 @@ function readTextSync(file: string, label: string): string | undefined {
 /** Synchronous config load for the depcruise plugin; throws CliError when missing or invalid. */
 export function loadConfigSync(configPath: string, label: string = configPath): LegacyConfig {
   const raw = readTextSync(configPath, label);
-  if (raw === undefined) throw new CliError(`No config found at ${label}. Run "legacy init" to create one.`);
+  if (raw === undefined) throw new CliError(`No config found at ${label}. Run "migration-tracker init" to create one.`);
   return configOrThrow(toConfigLoad(raw), label);
 }
 

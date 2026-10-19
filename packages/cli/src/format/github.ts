@@ -42,7 +42,7 @@ export function formatCheckGithub(outcome: CheckOutcome, paths: GithubPaths): st
           file: file(v.site.filePath),
           ...(v.site.line !== undefined ? { line: v.site.line } : {}),
           ...(v.site.line !== undefined && v.site.column !== undefined ? { col: v.site.column } : {}),
-          title: `legacy-ratchet/${v.site.groupId}`,
+          title: `migration-tracker/${v.site.groupId}`,
         },
         message,
       ),
@@ -53,7 +53,7 @@ export function formatCheckGithub(outcome: CheckOutcome, paths: GithubPaths): st
     out.push(
       annotation(
         'error',
-        { ...(paths.configPath !== undefined ? { file: paths.configPath } : {}), title: `legacy-ratchet/${x.groupId}` },
+        { ...(paths.configPath !== undefined ? { file: paths.configPath } : {}), title: `migration-tracker/${x.groupId}` },
         `Exception exceptions[${e.index}] for "${x.groupId}" expired on ${x.expires} (owner ${x.owner}): ${x.reason}`,
       ),
     );
@@ -62,7 +62,7 @@ export function formatCheckGithub(outcome: CheckOutcome, paths: GithubPaths): st
     out.push(
       annotation(
         'error',
-        { file: paths.baselinePath, title: 'legacy-ratchet/baseline' },
+        { file: paths.baselinePath, title: 'migration-tracker/baseline' },
         `Unauthorized baseline addition: ${id}. The baseline may only shrink.`,
       ),
     );
@@ -75,7 +75,7 @@ export function formatCheckGithub(outcome: CheckOutcome, paths: GithubPaths): st
           file: file(w.filePath),
           ...(w.line !== undefined ? { line: w.line } : {}),
           ...(w.column !== undefined ? { col: w.column } : {}),
-          title: 'legacy-ratchet',
+          title: 'migration-tracker',
         },
         w.message,
       ),

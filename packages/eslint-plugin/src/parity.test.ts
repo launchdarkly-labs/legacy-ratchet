@@ -1,5 +1,5 @@
-import { collectSites, validateConfig, type LegacyConfig, type RawImport } from '@legacy-ratchet/core';
-import { scanSource } from '@legacy-ratchet/scanner';
+import { collectSites, validateConfig, type LegacyConfig, type RawImport } from '@migration-tracker/core';
+import { scanSource } from '@migration-tracker/scanner';
 import tsParser from '@typescript-eslint/parser';
 import type { TSESLint } from '@typescript-eslint/utils';
 import { Linter } from 'eslint';
@@ -62,7 +62,7 @@ function expectParity(code: string, filePath: string, parser: 'typescript' | 'es
   return expected;
 }
 
-describe('parity with @legacy-ratchet/scanner scanSource', () => {
+describe('parity with @migration-tracker/scanner scanSource', () => {
   it('every TypeScript form + suppressions (.ts)', () => {
     const expected = expectParity(EVERY_FORM_TS, 'src/every.ts', 'typescript');
     expect(expected.length).toBeGreaterThan(40);

@@ -1,5 +1,5 @@
 {
-  "name": "@legacy-ratchet/cli",
+  "name": "@migration-tracker/cli",
   "version": "0.1.0",
   "type": "module",
   "main": "./dist/index.js",
@@ -21,16 +21,16 @@
     "build": "tsc -b"
   },
   "dependencies": {
-    "@legacy-ratchet/core": "workspace:*",
-    "@legacy-ratchet/depcruise": "workspace:*",
-    "@legacy-ratchet/scanner": "workspace:*",
-    "@legacy-ratchet/dashboard": "workspace:*",
+    "@migration-tracker/core": "workspace:*",
+    "@migration-tracker/depcruise": "workspace:*",
+    "@migration-tracker/scanner": "workspace:*",
+    "@migration-tracker/dashboard": "workspace:*",
     "commander": "^14.0.0",
     "picocolors": "^1.1.1"
   },
   "devDependencies": {},
   "bin": {
-    "legacy": "./dist/bin.js",
-    "legacy-ratchet": "./dist/bin.js"
+    "migration-tracker": "./dist/bin.js",
+    "mt": "./dist/bin.js"
   }
 }

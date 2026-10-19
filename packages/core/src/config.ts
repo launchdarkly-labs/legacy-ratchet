@@ -74,7 +74,7 @@ export const legacyConfigSchema = z
     exceptions: z.array(exceptionSchema).optional(),
   })
   .meta({
-    title: 'legacy-ratchet configuration (legacy.json)',
+    title: 'migration-tracker configuration (migrations.json)',
     description: 'Declares deprecated ("old") packages, their preferred replacements, and how new import sites are enforced.',
   });
 

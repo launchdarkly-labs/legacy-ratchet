@@ -7,8 +7,8 @@ import {
   updateBaseline,
   serializeBaseline,
   type Baseline,
-} from '@legacy-ratchet/core';
-import type { ScanError } from '@legacy-ratchet/scanner';
+} from '@migration-tracker/core';
+import type { ScanError } from '@migration-tracker/scanner';
 import { reportEngineWarnings, resolveEngineOptions, type EngineFlags } from '../engine-options.js';
 import { withErrors } from '../errors.js';
 import { revision, showFile, verifyRef } from '../git.js';
@@ -51,7 +51,7 @@ export const baselineCreateCommand = withErrors(async (options: BaselineCreateOp
   const file = baselineFile(ctx);
   if (!options.force && (await exists(file))) {
     throw new CliError(
-      `${displayPath(ctx, file)} already exists. Use "legacy baseline update" to shrink it, or --force to recreate it.`,
+      `${displayPath(ctx, file)} already exists. Use "migration-tracker baseline update" to shrink it, or --force to recreate it.`,
     );
   }
   const scan = await scanProject(ctx, config, resolveEngineOptions(ctx, options));
@@ -95,7 +95,7 @@ export const baselineMigrateCommand = withErrors(async (options: BaselineMigrate
   const config = await loadConfig(ctx);
   const file = baselineFile(ctx);
   if (!(await exists(file))) {
-    throw new CliError(`No baseline found at ${displayPath(ctx, file)}. Run "legacy baseline create" instead.`);
+    throw new CliError(`No baseline found at ${displayPath(ctx, file)}. Run "migration-tracker baseline create" instead.`);
   }
   const previous = parseBaselineText(ctx, await readFile(file, 'utf8'), displayPath(ctx, file));
   if (previous.upgradedFrom !== 1) {

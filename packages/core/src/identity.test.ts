@@ -39,7 +39,7 @@ describe('siteId / parseSiteId', () => {
   });
 
   it('rejects 5-part v1 ids with a migrate hint', () => {
-    expect(() => parseSiteId('forms|src/a.tsx|import|x|0')).toThrow(/legacy baseline migrate/);
+    expect(() => parseSiteId('forms|src/a.tsx|import|x|0')).toThrow(/migration-tracker baseline migrate/);
   });
 
   it('throws on wrong arity or malformed parts', () => {

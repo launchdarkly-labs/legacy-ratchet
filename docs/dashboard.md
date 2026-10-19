@@ -1,17 +1,17 @@
 # Reports and dashboard
 
-`legacy report` answers "is the migration actually shrinking, and where is the rest?" It scans the repository and builds a snapshot of every legacy import site, grouped by policy group.
+`migration-tracker report` answers "is the migration actually shrinking, and where is the rest?" It scans the repository and builds a snapshot of every legacy import site, grouped by policy group.
 
 ## Generating a report
 
 ```sh
-legacy report --format html
+migration-tracker report --format html
 ```
 
-writes `legacy-report.html` in the current directory. Use `--output <file>` to choose another path.
+writes `migration-report.html` in the current directory. Use `--output <file>` to choose another path.
 
 ```sh
-legacy report --format json
+migration-tracker report --format json
 ```
 
 prints the snapshot as JSON to stdout, or to `--output <file>`.
@@ -23,9 +23,9 @@ prints the snapshot as JSON to stdout, or to `--output <file>`.
 | Option | Description |
 |---|---|
 | `--format <html\|json>` | Output format. Default `html`. |
-| `--output <file>` | Where to write. Default `legacy-report.html` for HTML, stdout for JSON. |
+| `--output <file>` | Where to write. Default `migration-report.html` for HTML, stdout for JSON. |
 | `--append-history` | Append one entry to the history file. |
-| `--history <path>` | History file to read and append to, relative to the current directory. Default `<root>/.legacy/history.jsonl`. |
+| `--history <path>` | History file to read and append to, relative to the current directory. Default `<root>/.migrations/history.jsonl`. |
 | `--source-url <template>` | Link template for sites, stored in the snapshot. `{sha}` is replaced with the report's commit (or `HEAD`), `{path}` with the file path and `{line}` with the line. For example `https://example.com/acme/repo/blob/{sha}/{path}#L{line}`. |
 | `--codeowners <path>` | CODEOWNERS file to read, relative to the current directory. A missing file is an error. |
 | `--no-codeowners` | Don't read a CODEOWNERS file. |
@@ -39,7 +39,7 @@ The engine options of `check` (`--engine`, `--depcruise-config`, `--ts-config`, 
 Each group in the report has these numbers. The summary shows the same numbers across all groups.
 
 - **Sites**: legacy import sites left. One site is every import of one package specifier in one file with the same module system.
-- **Start**: the number of sites the migration started with. It is the group's `start` from `legacy.json` if set, otherwise the group's count in the earliest history entry, otherwise the current count. It is never lower than the current count. The summary adds up the groups.
+- **Start**: the number of sites the migration started with. It is the group's `start` from `migrations.json` if set, otherwise the group's count in the earliest history entry, otherwise the current count. It is never lower than the current count. The summary adds up the groups.
 - **% complete**: the share of the starting sites that are gone, `(start - sites) / start`, to one decimal. A group that started at 0 is 100% complete.
 - **New sites**: imports of the group's `new` packages, counted once per file and package. The same matching rules as `old` apply. A package listed as `new` in several groups counts for each.
 - **Adoption**: new sites as a share of new plus legacy sites, to one decimal. It is empty when a group has neither.
@@ -59,11 +59,11 @@ The view is kept in the URL hash (`#group=<id>&file=<path>`), so a link opens th
 
 Counts are of file-level sites: all imports of one package specifier in a file with the same module system are one site (see [ratcheting.md](ratcheting.md#import-site-identity)). Kind chips list the syntax forms a site merges: `import`, `import()`, `export from`, `require()`, `import =`.
 
-The snapshot is embedded in the page in a `<script id="legacy-ratchet-data" type="application/json">` element. Tools can read it back out without parsing the HTML layout.
+The snapshot is embedded in the page in a `<script id="migration-tracker-data" type="application/json">` element. Tools can read it back out without parsing the HTML layout.
 
 ## History file
 
-`--append-history` appends one line to `.legacy/history.jsonl` (or the `--history` file) with the time, git commit and branch (when available), the site total for each group (`totals`), and the new-package total for each group (`newTotals`). The report uses the earliest entry for a group as its starting count for "% complete" when `start` isn't set in `legacy.json`. Blank and malformed lines are skipped.
+`--append-history` appends one line to `.migrations/history.jsonl` (or the `--history` file) with the time, git commit and branch (when available), the site total for each group (`totals`), and the new-package total for each group (`newTotals`). The report uses the earliest entry for a group as its starting count for "% complete" when `start` isn't set in `migrations.json`. Blank and malformed lines are skipped.
 
 ## JSON snapshot
 

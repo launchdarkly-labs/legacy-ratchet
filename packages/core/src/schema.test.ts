@@ -6,7 +6,7 @@ const schemaUrl = new URL('../schema.json', import.meta.url);
 const expected = `${JSON.stringify(legacyConfigJsonSchema(), null, 2)}\n`;
 
 describe('schema.json', () => {
-  it('is up to date with the zod schema (run `pnpm --filter @legacy-ratchet/core generate:schema`)', () => {
+  it('is up to date with the zod schema (run `pnpm --filter @migration-tracker/core generate:schema`)', () => {
     if (process.env.UPDATE_SCHEMA === '1') writeFileSync(schemaUrl, expected);
     expect(readFileSync(schemaUrl, 'utf8')).toBe(expected);
   });

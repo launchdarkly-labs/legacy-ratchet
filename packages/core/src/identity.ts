@@ -23,7 +23,7 @@ export function parseSiteId(id: string): SiteKey {
   const parts = id.split('|');
   if (parts.length === 5) {
     throw new Error(
-      `Invalid site id "${id}": this is a schemaVersion 1 id (with an occurrence); run \`legacy baseline migrate\` to upgrade the baseline`,
+      `Invalid site id "${id}": this is a schemaVersion 1 id (with an occurrence); run \`migration-tracker baseline migrate\` to upgrade the baseline`,
     );
   }
   if (parts.length !== 4) {

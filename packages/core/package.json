@@ -1,5 +1,5 @@
 {
-  "name": "@legacy-ratchet/core",
+  "name": "@migration-tracker/core",
   "version": "0.2.0",
   "type": "module",
   "main": "./dist/index.js",

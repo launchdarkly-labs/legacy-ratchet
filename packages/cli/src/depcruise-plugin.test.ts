@@ -6,7 +6,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { EXAMPLES_DIR, loadDepcruise } from './__fixtures__/depcruise.js';
 import { FORMS_DATES_CONFIG } from './__fixtures__/harness.js';
-import legacyRatchetReporter, { runPlugin, TS_PRECOMPILATION_MESSAGE, type CruiseResult } from './depcruise-plugin.js';
+import migrationTrackerReporter, { runPlugin, TS_PRECOMPILATION_MESSAGE, type CruiseResult } from './depcruise-plugin.js';
 import { run } from './index.js';
 
 vi.mock('node:fs', async () => {
@@ -27,9 +27,9 @@ const MINIMAL: CruiseResult = {
 };
 
 const ENV_KEYS = [
-  'LEGACY_RATCHET_CONFIG',
-  'LEGACY_RATCHET_FORMAT',
-  'LEGACY_RATCHET_REPORT',
+  'MIGRATION_TRACKER_CONFIG',
+  'MIGRATION_TRACKER_FORMAT',
+  'MIGRATION_TRACKER_REPORT',
   'GITHUB_STEP_SUMMARY',
   'FORCE_COLOR',
 ];
@@ -37,7 +37,7 @@ const ENV_KEYS = [
 let tmp: string;
 
 beforeEach(() => {
-  tmp = fs.realpathSync(fs.mkdtempSync(path.join(os.tmpdir(), 'legacy-plugin-')));
+  tmp = fs.realpathSync(fs.mkdtempSync(path.join(os.tmpdir(), 'mt-plugin-')));
   for (const k of ENV_KEYS) vi.stubEnv(k, '');
   vi.stubEnv('NO_COLOR', '1');
 });
@@ -91,7 +91,7 @@ function moduleWith(source: string, deps: string[]): CruiseResult['modules'][num
 
 async function cliCheck(root: string): Promise<{ code: number; stdout: string }> {
   let stdout = '';
-  const code = await run(['node', 'legacy', 'check', '--root', root, '--no-color'], {
+  const code = await run(['node', 'migration-tracker', 'check', '--root', root, '--no-color'], {
     stdout: (s) => {
       stdout += s;
     },
@@ -113,15 +113,15 @@ async function cruiseExample(dir: string, extra: Record<string, unknown> = {}): 
 
 describe('depcruise reporter plugin contract', () => {
   it('default export is a synchronous function', () => {
-    expect(typeof legacyRatchetReporter).toBe('function');
-    expect(legacyRatchetReporter.constructor.name).toBe('Function');
+    expect(typeof migrationTrackerReporter).toBe('function');
+    expect(migrationTrackerReporter.constructor.name).toBe('Function');
   });
 
   it('answers the validation call with a plain object and touches no files', () => {
     vi.mocked(fs.readFileSync).mockClear();
     vi.mocked(fs.statSync).mockClear();
     vi.mocked(fs.existsSync).mockClear();
-    const out = legacyRatchetReporter(MINIMAL);
+    const out = migrationTrackerReporter(MINIMAL);
     expect(out).not.toBeInstanceOf(Promise);
     expect(out).toEqual({ output: '', exitCode: 0 });
     expect(fs.readFileSync).not.toHaveBeenCalled();
@@ -130,12 +130,12 @@ describe('depcruise reporter plugin contract', () => {
   });
 
   it('never throws on malformed input', () => {
-    const out = legacyRatchetReporter({
+    const out = migrationTrackerReporter({
       modules: null,
       summary: { optionsUsed: { baseDir: tmp } },
     } as unknown as CruiseResult);
     expect(out.exitCode).toBe(2);
-    expect(out.output).toMatch(/^legacy-ratchet: /);
+    expect(out.output).toMatch(/^migration-tracker: /);
   });
 });
 
@@ -149,20 +149,20 @@ const EMPTY_BASELINE = JSON.stringify({
 
 describe('config discovery', () => {
   beforeEach(() => {
-    write('legacy.json', JSON.stringify(FORMS_DATES_CONFIG));
-    write('.legacy/baseline.json', EMPTY_BASELINE);
+    write('migrations.json', JSON.stringify(FORMS_DATES_CONFIG));
+    write('.migrations/baseline.json', EMPTY_BASELINE);
     write('src/a.ts', "import { reduxForm } from 'redux-form';\n");
   });
 
-  it('walks up from optionsUsed.baseDir to legacy.json', () => {
-    const out = legacyRatchetReporter(resultFor(path.join(tmp, 'src'), [moduleWith('a.ts', ['redux-form'])]));
+  it('walks up from optionsUsed.baseDir to migrations.json', () => {
+    const out = migrationTrackerReporter(resultFor(path.join(tmp, 'src'), [moduleWith('a.ts', ['redux-form'])]));
     expect(out.exitCode).toBe(1);
     expect(out.output).toContain('✖ forms: src/a.ts:1');
   });
 
-  it('uses LEGACY_RATCHET_CONFIG relative to cwd', () => {
+  it('uses MIGRATION_TRACKER_CONFIG relative to cwd', () => {
     fs.mkdirSync(path.join(tmp, 'elsewhere'));
-    const env = { LEGACY_RATCHET_CONFIG: '../legacy.json' };
+    const env = { MIGRATION_TRACKER_CONFIG: '../migrations.json' };
     const out = runPlugin(resultFor(tmp, [moduleWith('src/a.ts', ['redux-form'])]), {
       env,
       cwd: path.join(tmp, 'elsewhere'),
@@ -171,57 +171,57 @@ describe('config discovery', () => {
     expect(out.exitCode).toBe(1);
     expect(out.output).toContain('✖ forms: src/a.ts:1');
 
-    vi.stubEnv('LEGACY_RATCHET_CONFIG', path.join(tmp, 'legacy.json'));
-    const viaProcess = legacyRatchetReporter(resultFor(tmp, [moduleWith('src/a.ts', ['redux-form'])]));
+    vi.stubEnv('MIGRATION_TRACKER_CONFIG', path.join(tmp, 'migrations.json'));
+    const viaProcess = migrationTrackerReporter(resultFor(tmp, [moduleWith('src/a.ts', ['redux-form'])]));
     expect(viaProcess.exitCode).toBe(1);
   });
 
-  it('exits 2 when no legacy.json is found for real modules', () => {
-    fs.rmSync(path.join(tmp, 'legacy.json'));
-    const out = legacyRatchetReporter(resultFor(tmp, [moduleWith('src/a.ts', ['redux-form'])]));
+  it('exits 2 when no migrations.json is found for real modules', () => {
+    fs.rmSync(path.join(tmp, 'migrations.json'));
+    const out = migrationTrackerReporter(resultFor(tmp, [moduleWith('src/a.ts', ['redux-form'])]));
     expect(out.exitCode).toBe(2);
-    expect(out.output).toContain('no legacy.json found');
+    expect(out.output).toContain('no migrations.json found');
   });
 
   it('exits 2 for an invalid config or a missing ratchet baseline', () => {
     const bad = runPlugin(resultFor(tmp, [moduleWith('src/a.ts', ['redux-form'])]), {
-      env: { LEGACY_RATCHET_CONFIG: path.join(tmp, 'missing.json') },
+      env: { MIGRATION_TRACKER_CONFIG: path.join(tmp, 'missing.json') },
       cwd: tmp,
       isTTY: false,
     });
     expect(bad.exitCode).toBe(2);
     expect(bad.output).toContain('No config found');
-    fs.rmSync(path.join(tmp, '.legacy/baseline.json'));
-    const noBaseline = legacyRatchetReporter(resultFor(tmp, [moduleWith('src/a.ts', [])]));
+    fs.rmSync(path.join(tmp, '.migrations/baseline.json'));
+    const noBaseline = migrationTrackerReporter(resultFor(tmp, [moduleWith('src/a.ts', [])]));
     expect(noBaseline.exitCode).toBe(2);
     expect(noBaseline.output).toContain('no baseline found');
     write('invalid.json', '{"version": 2}');
-    vi.stubEnv('LEGACY_RATCHET_CONFIG', path.join(tmp, 'invalid.json'));
-    const invalid = legacyRatchetReporter(resultFor(tmp, [moduleWith('src/a.ts', [])]));
+    vi.stubEnv('MIGRATION_TRACKER_CONFIG', path.join(tmp, 'invalid.json'));
+    const invalid = migrationTrackerReporter(resultFor(tmp, [moduleWith('src/a.ts', [])]));
     expect(invalid.exitCode).toBe(2);
     expect(invalid.output).toContain('Invalid config');
   });
 
   it('exits 2 unless tsPreCompilationDeps is true', () => {
     for (const value of [false, 'specify', undefined]) {
-      const out = legacyRatchetReporter(
+      const out = migrationTrackerReporter(
         resultFor(tmp, [moduleWith('src/a.ts', ['redux-form'])], { tsPreCompilationDeps: value }),
       );
-      expect(out).toEqual({ output: `legacy-ratchet: ${TS_PRECOMPILATION_MESSAGE}\n`, exitCode: 2 });
+      expect(out).toEqual({ output: `migration-tracker: ${TS_PRECOMPILATION_MESSAGE}\n`, exitCode: 2 });
     }
   });
 
-  it('rejects an unknown LEGACY_RATCHET_FORMAT', () => {
-    vi.stubEnv('LEGACY_RATCHET_FORMAT', 'xml');
-    expect(legacyRatchetReporter(resultFor(tmp, [moduleWith('src/a.ts', [])])).exitCode).toBe(2);
+  it('rejects an unknown MIGRATION_TRACKER_FORMAT', () => {
+    vi.stubEnv('MIGRATION_TRACKER_FORMAT', 'xml');
+    expect(migrationTrackerReporter(resultFor(tmp, [moduleWith('src/a.ts', [])])).exitCode).toBe(2);
   });
 });
 
 describe('formats and reports', () => {
   beforeEach(() => {
-    write('legacy.json', JSON.stringify(FORMS_DATES_CONFIG));
+    write('migrations.json', JSON.stringify(FORMS_DATES_CONFIG));
     write(
-      '.legacy/baseline.json',
+      '.migrations/baseline.json',
       JSON.stringify({
         schemaVersion: 2,
         configDigest: 'x',
@@ -246,8 +246,8 @@ describe('formats and reports', () => {
   ];
 
   it('restricts the baseline to cruised files', () => {
-    vi.stubEnv('LEGACY_RATCHET_FORMAT', 'json');
-    const out = legacyRatchetReporter(resultFor(tmp, modules()));
+    vi.stubEnv('MIGRATION_TRACKER_FORMAT', 'json');
+    const out = migrationTrackerReporter(resultFor(tmp, modules()));
     const json = JSON.parse(out.output) as {
       retired: string[];
       violations: Array<{ filePath: string; line: number; kinds: string[] }>;
@@ -259,16 +259,16 @@ describe('formats and reports', () => {
 
   it('writes github annotations and the step summary', () => {
     const summary = path.join(tmp, 'summary.md');
-    vi.stubEnv('LEGACY_RATCHET_FORMAT', 'github');
+    vi.stubEnv('MIGRATION_TRACKER_FORMAT', 'github');
     vi.stubEnv('GITHUB_STEP_SUMMARY', summary);
-    const out = legacyRatchetReporter(resultFor(tmp, modules()));
-    expect(out.output).toContain('::error file=src/b.ts,line=1,col=23,title=legacy-ratchet/forms::');
-    expect(fs.readFileSync(summary, 'utf8')).toContain('## legacy-ratchet');
+    const out = migrationTrackerReporter(resultFor(tmp, modules()));
+    expect(out.output).toContain('::error file=src/b.ts,line=1,col=23,title=migration-tracker/forms::');
+    expect(fs.readFileSync(summary, 'utf8')).toContain('## migration-tracker');
   });
 
   it('prints markdown', () => {
-    vi.stubEnv('LEGACY_RATCHET_FORMAT', 'markdown');
-    expect(legacyRatchetReporter(resultFor(tmp, modules())).output).toContain('**✖ Check failed.**');
+    vi.stubEnv('MIGRATION_TRACKER_FORMAT', 'markdown');
+    expect(migrationTrackerReporter(resultFor(tmp, modules())).output).toContain('**✖ Check failed.**');
   });
 
   it('colours text only on a TTY without NO_COLOR', () => {
@@ -278,10 +278,10 @@ describe('formats and reports', () => {
     expect(runPlugin(r, { env: {}, cwd: tmp, isTTY: false }).output).not.toContain('\u001b[');
   });
 
-  it('counts adoption and CODEOWNERS owners in the LEGACY_RATCHET_REPORT snapshot', () => {
+  it('counts adoption and CODEOWNERS owners in the MIGRATION_TRACKER_REPORT snapshot', () => {
     write('CODEOWNERS', '/src/b.ts @acme/web\n');
-    vi.stubEnv('LEGACY_RATCHET_REPORT', path.join(tmp, 'out/report.json'));
-    legacyRatchetReporter(resultFor(tmp, [...modules(), moduleWith('src/n.ts', ['react-hook-form', 'dayjs'])]));
+    vi.stubEnv('MIGRATION_TRACKER_REPORT', path.join(tmp, 'out/report.json'));
+    migrationTrackerReporter(resultFor(tmp, [...modules(), moduleWith('src/n.ts', ['react-hook-form', 'dayjs'])]));
     const snapshot = JSON.parse(fs.readFileSync(path.join(tmp, 'out/report.json'), 'utf8')) as {
       groups: Array<{ id: string; newSites: number; byOwner: Record<string, number> }>;
     };
@@ -291,32 +291,32 @@ describe('formats and reports', () => {
     ]);
   });
 
-  it('writes a JSON snapshot and an HTML report with LEGACY_RATCHET_REPORT', () => {
-    vi.stubEnv('LEGACY_RATCHET_REPORT', path.join(tmp, 'out/report.json'));
-    legacyRatchetReporter(resultFor(tmp, modules()));
+  it('writes a JSON snapshot and an HTML report with MIGRATION_TRACKER_REPORT', () => {
+    vi.stubEnv('MIGRATION_TRACKER_REPORT', path.join(tmp, 'out/report.json'));
+    migrationTrackerReporter(resultFor(tmp, modules()));
     const snapshot = JSON.parse(fs.readFileSync(path.join(tmp, 'out/report.json'), 'utf8')) as {
       schemaVersion: number;
       totalSites: number;
     };
     expect(snapshot).toMatchObject({ schemaVersion: 2, totalSites: 3 });
 
-    vi.stubEnv('LEGACY_RATCHET_REPORT', path.join(tmp, 'out/report.html'));
-    const html = legacyRatchetReporter(resultFor(tmp, modules()));
+    vi.stubEnv('MIGRATION_TRACKER_REPORT', path.join(tmp, 'out/report.html'));
+    const html = migrationTrackerReporter(resultFor(tmp, modules()));
     if (fs.existsSync(path.join(tmp, 'out/report.html'))) {
       expect(fs.readFileSync(path.join(tmp, 'out/report.html'), 'utf8')).toContain('"totalSites":3');
     } else {
       expect(html.output).toContain('dashboard template is missing');
     }
 
-    vi.stubEnv('LEGACY_RATCHET_REPORT', path.join(tmp, 'out/report.txt'));
-    expect(legacyRatchetReporter(resultFor(tmp, modules())).output).toContain('must end in .json or .html');
+    vi.stubEnv('MIGRATION_TRACKER_REPORT', path.join(tmp, 'out/report.txt'));
+    expect(migrationTrackerReporter(resultFor(tmp, modules())).output).toContain('must end in .json or .html');
   });
 });
 
-describe('parity with legacy check on examples/vite-react', () => {
-  it('prints the same text as legacy check --no-color', async () => {
+describe('parity with migration-tracker check on examples/vite-react', () => {
+  it('prints the same text as migration-tracker check --no-color', async () => {
     const dir = path.join(EXAMPLES_DIR, 'vite-react');
-    const out = legacyRatchetReporter(await cruiseExample(dir));
+    const out = migrationTrackerReporter(await cruiseExample(dir));
     const cli = await cliCheck(dir);
     expect(out.exitCode).toBe(cli.code);
     expect(out.output).toBe(cli.stdout);
@@ -333,24 +333,24 @@ describe('parity with legacy check on examples/vite-react', () => {
     const result = await cruiseExample(dir);
     const resolved = result.modules.flatMap((m) => m.dependencies).filter((d) => d.resolved.startsWith('node_modules/'));
     expect(resolved.length).toBeGreaterThan(0);
-    expect(legacyRatchetReporter(result).output).toBe('Legacy sites: 9 remaining | 0 retired | 0 new violations\n');
+    expect(migrationTrackerReporter(result).output).toBe('Legacy sites: 9 remaining | 0 retired | 0 new violations\n');
 
-    const excluded = legacyRatchetReporter(await cruiseExample(dir, { exclude: { path: 'node_modules' } }));
+    const excluded = migrationTrackerReporter(await cruiseExample(dir, { exclude: { path: 'node_modules' } }));
     expect(excluded.exitCode).toBe(2);
     expect(excluded.output).toContain('exclude option matches node_modules');
-    const included = legacyRatchetReporter(await cruiseExample(dir, { includeOnly: '^src' }));
+    const included = migrationTrackerReporter(await cruiseExample(dir, { includeOnly: '^src' }));
     expect(included.exitCode).toBe(2);
     expect(included.output).toContain('includeOnly option does not match node_modules');
   });
 
-  it('matches legacy check on a new violation', async () => {
+  it('matches migration-tracker check on a new violation', async () => {
     const dir = path.join(tmp, 'vite-react');
     fs.cpSync(path.join(EXAMPLES_DIR, 'vite-react'), dir, { recursive: true });
     fs.writeFileSync(
       path.join(dir, 'src/lib/newDates.ts'),
       "import moment from 'moment';\nexport const now = () => moment();\n",
     );
-    const out = legacyRatchetReporter(await cruiseExample(dir));
+    const out = migrationTrackerReporter(await cruiseExample(dir));
     const cli = await cliCheck(dir);
     expect(out.exitCode).toBe(1);
     expect(cli.code).toBe(1);

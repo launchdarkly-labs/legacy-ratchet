@@ -12,7 +12,7 @@ afterEach(() => {
 });
 
 function baselineAllowed(): string[] {
-  return (JSON.parse(repo.read('.legacy/baseline.json')) as { allowed: string[] }).allowed;
+  return (JSON.parse(repo.read('.migrations/baseline.json')) as { allowed: string[] }).allowed;
 }
 
 describe('full workflow', () => {
@@ -22,19 +22,19 @@ describe('full workflow', () => {
     const init = await repo.run(['init']);
     expect(init.code).toBe(0);
     expect(init.stdout).toContain('"moment"');
-    expect(repo.exists('legacy.json')).toBe(true);
-    expect(repo.read('.legacy/README.md')).toContain('legacy baseline create');
-    expect(JSON.parse(repo.read('legacy.json')).$schema).toBe('./node_modules/@legacy-ratchet/core/schema.json');
+    expect(repo.exists('migrations.json')).toBe(true);
+    expect(repo.read('.migrations/README.md')).toContain('migration-tracker baseline create');
+    expect(JSON.parse(repo.read('migrations.json')).$schema).toBe('./node_modules/@migration-tracker/core/schema.json');
     expect((await repo.run(['validate'])).code).toBe(0);
 
-    repo.writeJson('legacy.json', FORMS_DATES_CONFIG);
+    repo.writeJson('migrations.json', FORMS_DATES_CONFIG);
     repo.write('src/a.ts', "import { reduxForm } from 'redux-form';\nimport moment from 'moment';\n");
     repo.write('src/b.ts', "import { Field } from 'redux-form';\nexport const x = 1;\n");
     repo.commit('initial');
 
     const noBaseline = await repo.run(['check']);
     expect(noBaseline.code).toBe(2);
-    expect(noBaseline.stderr).toContain('legacy baseline create');
+    expect(noBaseline.stderr).toContain('migration-tracker baseline create');
 
     const create = await repo.run(['baseline', 'create']);
     expect(create.code).toBe(0);
@@ -44,7 +44,7 @@ describe('full workflow', () => {
       'forms|src/a.ts|import|redux-form',
       'forms|src/b.ts|import|redux-form',
     ]);
-    const baseline = JSON.parse(repo.read('.legacy/baseline.json'));
+    const baseline = JSON.parse(repo.read('.migrations/baseline.json'));
     expect(baseline.revision.commit).toMatch(/^[0-9a-f]{40}$/);
     expect(baseline.revision.branch).toBe('main');
     expect((await repo.run(['baseline', 'create'])).code).toBe(2);
@@ -72,7 +72,7 @@ describe('full workflow', () => {
     const passing = await repo.run(['check']);
     expect(passing.code).toBe(0);
     expect(passing.stdout).toContain('Legacy sites: 2 remaining | 1 retired | 0 new violations');
-    expect(passing.stdout).toContain('Run "legacy baseline update" to remove 1 retired site from the baseline.');
+    expect(passing.stdout).toContain('Run "migration-tracker baseline update" to remove 1 retired site from the baseline.');
 
     const update = await repo.run(['baseline', 'update']);
     expect(update.code).toBe(0);
@@ -83,17 +83,17 @@ describe('full workflow', () => {
     expect(verified.stdout).toContain('1 site retired');
     repo.commit('retire b.ts');
 
-    const cleanBaseline = repo.read('.legacy/baseline.json');
+    const cleanBaseline = repo.read('.migrations/baseline.json');
     const tampered = JSON.parse(cleanBaseline);
     tampered.allowed = [...tampered.allowed, 'forms|src/z.ts|import|redux-form'].sort();
-    repo.writeJson('.legacy/baseline.json', tampered);
+    repo.writeJson('.migrations/baseline.json', tampered);
     const verifyFail = await repo.run(['baseline', 'verify', '--base', baseRef]);
     expect(verifyFail.code).toBe(1);
     expect(verifyFail.stdout).toContain('forms|src/z.ts|import|redux-form');
     const checkBase = await repo.run(['check', '--base', baseRef]);
     expect(checkBase.code).toBe(1);
     expect(checkBase.stdout).toContain('✖ Unauthorized baseline addition: forms|src/z.ts|import|redux-form');
-    repo.write('.legacy/baseline.json', cleanBaseline);
+    repo.write('.migrations/baseline.json', cleanBaseline);
     expect((await repo.run(['check', '--base', baseRef])).code).toBe(0);
 
     repo.write('src/legacy/old.ts', "import { Field } from 'redux-form';\n");
@@ -101,16 +101,16 @@ describe('full workflow', () => {
       ...FORMS_DATES_CONFIG,
       exceptions: [{ groupId: 'forms', files: ['src/legacy/**'], reason: 'frozen', owner: '@team', expires: '2099-12-31' }],
     };
-    repo.writeJson('legacy.json', withException);
+    repo.writeJson('migrations.json', withException);
     expect((await repo.run(['check'])).code).toBe(0);
     withException.exceptions[0]!.expires = '2000-01-01';
-    repo.writeJson('legacy.json', withException);
+    repo.writeJson('migrations.json', withException);
     const expired = await repo.run(['check', '--no-color']);
     expect(expired.code).toBe(1);
     expect(expired.stdout).toContain('✖ forms: exception expired on 2000-01-01 (exceptions[0])');
     expect(expired.stdout).toContain('✖ forms: src/legacy/old.ts:1');
     repo.remove('src/legacy/old.ts');
-    repo.writeJson('legacy.json', FORMS_DATES_CONFIG);
+    repo.writeJson('migrations.json', FORMS_DATES_CONFIG);
     const head = repo.commit('drop legacy dir');
 
     repo.write('src/d.ts', "import { reduxForm } from 'redux-form';\n");
@@ -129,6 +129,6 @@ describe('full workflow', () => {
     const snapshot = JSON.parse(report.stdout);
     expect(snapshot.totalSites).toBe(1);
     expect(snapshot.history).toHaveLength(1);
-    expect(repo.read('.legacy/history.jsonl').trim().split('\n')).toHaveLength(1);
+    expect(repo.read('.migrations/history.jsonl').trim().split('\n')).toHaveLength(1);
   });
 });

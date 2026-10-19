@@ -1,5 +1,5 @@
-import { formatViolation, type ExpiredException, type ImportSite, type LegacyConfig, type Violation } from '@legacy-ratchet/core';
-import type { ScanError } from '@legacy-ratchet/scanner';
+import { formatViolation, type ExpiredException, type ImportSite, type LegacyConfig, type Violation } from '@migration-tracker/core';
+import type { ScanError } from '@migration-tracker/scanner';
 import type { Colors } from '../io.js';
 import { plural } from '../output.js';
 import { summaryLine, warningLocation, type CheckOutcome } from './types.js';
@@ -44,7 +44,7 @@ export function formatCheckText(outcome: CheckOutcome, c: Colors, quiet: boolean
     }
     tail.push(summaryLine(outcome));
     if (result.retired.length > 0) {
-      tail.push(c.dim(`Run "legacy baseline update" to remove ${plural(result.retired.length, 'retired site')} from the baseline.`));
+      tail.push(c.dim(`Run "migration-tracker baseline update" to remove ${plural(result.retired.length, 'retired site')} from the baseline.`));
     }
     blocks.push(tail.join('\n'));
   }

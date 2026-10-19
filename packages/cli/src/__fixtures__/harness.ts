@@ -15,7 +15,7 @@ export class TempRepo {
   readonly dir: string;
 
   constructor(opts: { git?: boolean } = {}) {
-    this.dir = mkdtempSync(path.join(os.tmpdir(), 'legacy-cli-'));
+    this.dir = mkdtempSync(path.join(os.tmpdir(), 'mt-cli-'));
     if (opts.git !== false) {
       this.git('init', '-q', '-b', 'main');
       this.git('config', 'user.email', 'test@example.com');
@@ -74,7 +74,7 @@ export class TempRepo {
       env: opts.env ?? {},
       isTTY: opts.isTTY ?? false,
     };
-    const code = await run(['node', 'legacy', ...args], io);
+    const code = await run(['node', 'migration-tracker', ...args], io);
     return { code, stdout, stderr };
   }
 

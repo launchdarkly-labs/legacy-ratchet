@@ -1,5 +1,5 @@
 import path from 'node:path';
-import { assignOwners, buildReport, historyEntry } from '@legacy-ratchet/core';
+import { assignOwners, buildReport, historyEntry } from '@migration-tracker/core';
 import { renderDashboard } from '../dashboard.js';
 import { reportEngineWarnings, resolveEngineOptions, type EngineFlags } from '../engine-options.js';
 import { CliError, withErrors } from '../errors.js';
@@ -18,7 +18,7 @@ import {
 import { emit, status, warn } from '../output.js';
 import { scanProject } from '../project.js';
 
-export const DEFAULT_HTML_OUTPUT = 'legacy-report.html';
+export const DEFAULT_HTML_OUTPUT = 'migration-report.html';
 
 export interface ReportOptions extends GlobalOptions, EngineFlags {
   format?: string;

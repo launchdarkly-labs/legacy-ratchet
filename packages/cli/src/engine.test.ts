@@ -1,6 +1,6 @@
-import type { ExtractOptions, ExtractResult } from '@legacy-ratchet/depcruise';
-import { extractWithDepcruise } from '@legacy-ratchet/depcruise';
-import { SCANNER_VERSION } from '@legacy-ratchet/scanner';
+import type { ExtractOptions, ExtractResult } from '@migration-tracker/depcruise';
+import { extractWithDepcruise } from '@migration-tracker/depcruise';
+import { SCANNER_VERSION } from '@migration-tracker/scanner';
 import { cpSync, mkdtempSync, readFileSync, rmSync } from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
@@ -31,10 +31,10 @@ function quietIo(cwd: string) {
 describe('engine parity on the examples', () => {
   for (const name of ['vite-react', 'pnpm-monorepo']) {
     it(`--engine scanner and --engine depcruise create identical baselines for ${name}`, async () => {
-      const dir = mkdtempSync(path.join(os.tmpdir(), `legacy-engine-${name}-`));
+      const dir = mkdtempSync(path.join(os.tmpdir(), `mt-engine-${name}-`));
       try {
         cpSync(path.join(examples, name), dir, { recursive: true });
-        const committed = JSON.parse(readFileSync(path.join(dir, '.legacy/baseline.json'), 'utf8')) as {
+        const committed = JSON.parse(readFileSync(path.join(dir, '.migrations/baseline.json'), 'utf8')) as {
           allowed: string[];
         };
         const baselines: Record<string, { allowed: string[]; configDigest: string; scannerVersion: string }> = {};
@@ -42,7 +42,7 @@ describe('engine parity on the examples', () => {
           const r = await repo.run(['baseline', 'create', '--force', '--root', dir, '--engine', engine]);
           expect(r.code, r.stderr).toBe(0);
           expect(r.stderr).toBe('');
-          baselines[engine] = JSON.parse(readFileSync(path.join(dir, '.legacy/baseline.json'), 'utf8'));
+          baselines[engine] = JSON.parse(readFileSync(path.join(dir, '.migrations/baseline.json'), 'utf8'));
         }
         expect(baselines.depcruise!.allowed).toEqual(baselines.scanner!.allowed);
         expect(baselines.depcruise!.configDigest).toBe(baselines.scanner!.configDigest);
@@ -59,29 +59,29 @@ describe('engine parity on the examples', () => {
 });
 
 describe('engine selection', () => {
-  it('honours LEGACY_RATCHET_ENGINE and rejects unknown engines', async () => {
-    repo.writeJson('legacy.json', FORMS_DATES_CONFIG);
+  it('honours MIGRATION_TRACKER_ENGINE and rejects unknown engines', async () => {
+    repo.writeJson('migrations.json', FORMS_DATES_CONFIG);
     repo.write('src/a.ts', "import { reduxForm } from 'redux-form';\n");
-    const viaEnv = await repo.run(['baseline', 'create'], { env: { LEGACY_RATCHET_ENGINE: 'scanner' } });
+    const viaEnv = await repo.run(['baseline', 'create'], { env: { MIGRATION_TRACKER_ENGINE: 'scanner' } });
     expect(viaEnv.code).toBe(0);
-    expect(JSON.parse(repo.read('.legacy/baseline.json')).scannerVersion).toBe(SCANNER_VERSION);
+    expect(JSON.parse(repo.read('.migrations/baseline.json')).scannerVersion).toBe(SCANNER_VERSION);
 
     const flagWins = await repo.run(['baseline', 'create', '--force', '--engine', 'depcruise'], {
-      env: { LEGACY_RATCHET_ENGINE: 'scanner' },
+      env: { MIGRATION_TRACKER_ENGINE: 'scanner' },
     });
     expect(flagWins.code).toBe(0);
-    expect(JSON.parse(repo.read('.legacy/baseline.json')).scannerVersion).toContain('+dependency-cruiser@');
+    expect(JSON.parse(repo.read('.migrations/baseline.json')).scannerVersion).toContain('+dependency-cruiser@');
 
     const bad = await repo.run(['check', '--engine', 'eslint']);
     expect(bad.code).toBe(2);
     expect(bad.stderr).toBe('error: Unknown engine "eslint" (expected depcruise or scanner)\n');
-    const badEnv = await repo.run(['scan'], { env: { LEGACY_RATCHET_ENGINE: 'nope' } });
+    const badEnv = await repo.run(['scan'], { env: { MIGRATION_TRACKER_ENGINE: 'nope' } });
     expect(badEnv.code).toBe(2);
   });
 
   it('accepts engine flags alongside global options after the subcommand', async () => {
     const app = 'packages/app';
-    repo.writeJson(`${app}/legacy.json`, FORMS_DATES_CONFIG);
+    repo.writeJson(`${app}/migrations.json`, FORMS_DATES_CONFIG);
     repo.write(`${app}/src/a.ts`, "import { reduxForm } from 'redux-form';\n");
     const create = await repo.run([
       'baseline',
@@ -103,8 +103,8 @@ describe('engine selection', () => {
     expect(JSON.parse(report.stdout).totalSites).toBe(1);
   });
 
-  it('reads resolve options from --depcruise-config and LEGACY_RATCHET_DEPCRUISE_CONFIG', async () => {
-    repo.writeJson('legacy.json', FORMS_DATES_CONFIG);
+  it('reads resolve options from --depcruise-config and MIGRATION_TRACKER_DEPCRUISE_CONFIG', async () => {
+    repo.writeJson('migrations.json', FORMS_DATES_CONFIG);
     repo.write('src/a.ts', "import { reduxForm } from 'redux-form';\n");
     repo.write('.dependency-cruiser.cjs', "module.exports = { options: { includeOnly: '^src' } };\n");
     const flag = await repo.run(['scan', '--depcruise-config', '.dependency-cruiser.cjs', '--format', 'json']);
@@ -112,13 +112,13 @@ describe('engine selection', () => {
     expect(flag.stderr).toContain('depcruise option "includeOnly" is ignored');
     expect(JSON.parse(flag.stdout).sites).toHaveLength(1);
     const env = await repo.run(['scan', '--format', 'json'], {
-      env: { LEGACY_RATCHET_DEPCRUISE_CONFIG: '.dependency-cruiser.cjs' },
+      env: { MIGRATION_TRACKER_DEPCRUISE_CONFIG: '.dependency-cruiser.cjs' },
     });
     expect(env.stderr).toContain('depcruise option "includeOnly" is ignored');
   });
 
   it('writes the depcruise cache only with --cache', async () => {
-    repo.writeJson('legacy.json', FORMS_DATES_CONFIG);
+    repo.writeJson('migrations.json', FORMS_DATES_CONFIG);
     repo.write('src/a.ts', "import { reduxForm } from 'redux-form';\n");
     expect((await repo.run(['scan'])).code).toBe(0);
     expect(repo.exists('.cache')).toBe(false);
@@ -131,7 +131,7 @@ describe('engine selection', () => {
 
 describe('scanProject with the depcruise engine', () => {
   it('passes only changed files to extract with --changed-since', async () => {
-    repo.writeJson('legacy.json', FORMS_DATES_CONFIG);
+    repo.writeJson('migrations.json', FORMS_DATES_CONFIG);
     repo.write('src/a.ts', "import { reduxForm } from 'redux-form';\n");
     repo.write('src/b.ts', "import moment from 'moment';\n");
     const head = repo.commit('initial');
@@ -159,7 +159,7 @@ describe('scanProject with the depcruise engine', () => {
   });
 
   it('adds new packages to the prefilter and counts adoption when asked', async () => {
-    repo.writeJson('legacy.json', FORMS_DATES_CONFIG);
+    repo.writeJson('migrations.json', FORMS_DATES_CONFIG);
     repo.write('src/a.ts', "import { reduxForm } from 'redux-form';\n");
     repo.write('src/new-only.ts', "import { useForm } from 'react-hook-form';\nimport { format } from 'date-fns/format';\n");
     repo.write('src/plain.ts', 'export const x = 1;\n');
@@ -186,7 +186,7 @@ describe('scanProject with the depcruise engine', () => {
   });
 
   it('omits the prefilter with prefilter: false', async () => {
-    repo.writeJson('legacy.json', FORMS_DATES_CONFIG);
+    repo.writeJson('migrations.json', FORMS_DATES_CONFIG);
     repo.write('src/a.ts', "import { reduxForm } from 'redux-form';\n");
     const spy = vi.fn(extractWithDepcruise);
     const ctx = createContext({}, quietIo(repo.dir));
@@ -196,7 +196,7 @@ describe('scanProject with the depcruise engine', () => {
   });
 
   it('turns an extract run error into a CliError naming the file', async () => {
-    repo.writeJson('legacy.json', FORMS_DATES_CONFIG);
+    repo.writeJson('migrations.json', FORMS_DATES_CONFIG);
     repo.write('src/a.ts', "import { reduxForm } from 'redux-form';\n");
     const extract = async (): Promise<ExtractResult> => ({
       imports: [],
@@ -215,7 +215,7 @@ describe('scanProject with the depcruise engine', () => {
   });
 
   it('warns about sites depcruise reports but the scanner cannot locate', async () => {
-    repo.writeJson('legacy.json', FORMS_DATES_CONFIG);
+    repo.writeJson('migrations.json', FORMS_DATES_CONFIG);
     repo.write('src/a.ts', "import { reduxForm } from 'redux-form';\n");
     repo.write('src/t.ts', "export type M = typeof import('moment');\n");
     repo.commit('initial');
@@ -235,6 +235,6 @@ describe('scanProject with the depcruise engine', () => {
     expect(scan.stdout).toContain('  src/t.ts  moment  (import)');
 
     const github = await repo.run(['check', '--format', 'github']);
-    expect(github.stdout).toContain('::warning file=src/t.ts,title=legacy-ratchet::position unavailable for');
+    expect(github.stdout).toContain('::warning file=src/t.ts,title=migration-tracker::position unavailable for');
   });
 });

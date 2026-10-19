@@ -9,15 +9,15 @@ import { DEPCRUISE_BIN, EXAMPLES_DIR, PLUGIN_DIST } from './__fixtures__/depcrui
 
 const CLI_BIN = fileURLToPath(new URL('../dist/bin.js', import.meta.url));
 const built = existsSync(PLUGIN_DIST) && existsSync(CLI_BIN);
-const tmp = mkdtempSync(path.join(os.tmpdir(), 'legacy-plugin-e2e-'));
+const tmp = mkdtempSync(path.join(os.tmpdir(), 'mt-plugin-e2e-'));
 afterAll(() => rmSync(tmp, { recursive: true, force: true }));
 
 function env(): NodeJS.ProcessEnv {
   const out: NodeJS.ProcessEnv = { ...process.env, NO_COLOR: '1' };
   for (const k of [
-    'LEGACY_RATCHET_CONFIG',
-    'LEGACY_RATCHET_FORMAT',
-    'LEGACY_RATCHET_REPORT',
+    'MIGRATION_TRACKER_CONFIG',
+    'MIGRATION_TRACKER_FORMAT',
+    'MIGRATION_TRACKER_REPORT',
     'GITHUB_STEP_SUMMARY',
     'FORCE_COLOR',
   ])
@@ -34,7 +34,7 @@ function depcruise(cwd: string, pluginPath: string) {
 }
 
 describe.skipIf(!built)('dependency-cruiser runs the reporter plugin end to end', () => {
-  it('legacy depcruise-plugin-path prints the built plugin', () => {
+  it('migration-tracker depcruise-plugin-path prints the built plugin', () => {
     const r = spawnSync(process.execPath, [CLI_BIN, 'depcruise-plugin-path'], { encoding: 'utf8', env: env() });
     expect(r.status).toBe(0);
     expect(r.stdout.trim()).toBe(PLUGIN_DIST);

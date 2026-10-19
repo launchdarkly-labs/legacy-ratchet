@@ -178,16 +178,16 @@ importers:
 
   packages/cli:
     dependencies:
-      '@legacy-ratchet/core':
+      '@migration-tracker/core':
         specifier: workspace:*
         version: link:../core
-      '@legacy-ratchet/dashboard':
+      '@migration-tracker/dashboard':
         specifier: workspace:*
         version: link:../dashboard
-      '@legacy-ratchet/depcruise':
+      '@migration-tracker/depcruise':
         specifier: workspace:*
         version: link:../depcruise
-      '@legacy-ratchet/scanner':
+      '@migration-tracker/scanner':
         specifier: workspace:*
         version: link:../scanner
       commander:
@@ -212,7 +212,7 @@ importers:
 
   packages/dashboard:
     devDependencies:
-      '@legacy-ratchet/core':
+      '@migration-tracker/core':
         specifier: workspace:*
         version: link:../core
       '@testing-library/react':
@@ -245,10 +245,10 @@ importers:
 
   packages/depcruise:
     dependencies:
-      '@legacy-ratchet/core':
+      '@migration-tracker/core':
         specifier: workspace:*
         version: link:../core
-      '@legacy-ratchet/scanner':
+      '@migration-tracker/scanner':
         specifier: workspace:*
         version: link:../scanner
       dependency-cruiser:
@@ -260,7 +260,7 @@ importers:
 
   packages/eslint-plugin:
     dependencies:
-      '@legacy-ratchet/core':
+      '@migration-tracker/core':
         specifier: workspace:*
         version: link:../core
       '@typescript-eslint/utils':
@@ -279,7 +279,7 @@ importers:
 
   packages/scanner:
     dependencies:
-      '@legacy-ratchet/core':
+      '@migration-tracker/core':
         specifier: workspace:*
         version: link:../core
       fast-glob:

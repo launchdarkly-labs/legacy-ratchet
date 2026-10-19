@@ -1,7 +1,7 @@
 import { mkdirSync, mkdtempSync, realpathSync, writeFileSync } from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
-import { createBaseline, serializeBaseline, siteId, validateConfig, type LegacyConfig, type SiteKind } from '@legacy-ratchet/core';
+import { createBaseline, serializeBaseline, siteId, validateConfig, type LegacyConfig, type SiteKind } from '@migration-tracker/core';
 
 export const CONFIG = {
   version: 1,
@@ -41,22 +41,22 @@ export interface FixtureOptions {
 
 /** Creates a temp project root and returns its real path. */
 export function makeFixture(opts: FixtureOptions = {}): string {
-  const root = realpathSync(mkdtempSync(path.join(os.tmpdir(), 'legacy-ratchet-eslint-')));
+  const root = realpathSync(mkdtempSync(path.join(os.tmpdir(), 'migration-tracker-eslint-')));
   const write = (rel: string, text: string): void => {
     const abs = path.join(root, rel);
     mkdirSync(path.dirname(abs), { recursive: true });
     writeFileSync(abs, text);
   };
-  write('legacy.json', opts.configText ?? JSON.stringify(opts.config ?? CONFIG, null, 2));
+  write('migrations.json', opts.configText ?? JSON.stringify(opts.config ?? CONFIG, null, 2));
   if (opts.baselineText !== undefined) {
-    write('.legacy/baseline.json', opts.baselineText);
+    write('.migrations/baseline.json', opts.baselineText);
   } else if (opts.allowed) {
     const validated = validateConfig(opts.config ?? CONFIG);
     if (!validated.ok) throw new Error('fixture config invalid');
     const config: LegacyConfig = validated.config;
     const baseline = createBaseline([], { config, scannerVersion: '0.0.0-test', now: new Date('2026-01-01T00:00:00Z') });
     baseline.allowed = opts.allowed.map((a) => siteId(a)).sort();
-    write('.legacy/baseline.json', serializeBaseline(baseline));
+    write('.migrations/baseline.json', serializeBaseline(baseline));
   }
   for (const [rel, text] of Object.entries(opts.files ?? {})) write(rel, text);
   return root;

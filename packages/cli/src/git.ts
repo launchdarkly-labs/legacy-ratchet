@@ -1,6 +1,6 @@
 import { execFile } from 'node:child_process';
 import { promisify } from 'node:util';
-import type { BaselineRevision } from '@legacy-ratchet/core';
+import type { BaselineRevision } from '@migration-tracker/core';
 import { CliError } from './errors.js';
 
 const execFileAsync = promisify(execFile);

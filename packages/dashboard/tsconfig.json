@@ -15,7 +15,7 @@
     "skipLibCheck": true,
     "forceConsistentCasingInFileNames": true,
     "paths": {
-      "@legacy-ratchet/core": ["../core/src/types.ts"]
+      "@migration-tracker/core": ["../core/src/types.ts"]
     }
   },
   "include": ["src", "vite.config.ts"]

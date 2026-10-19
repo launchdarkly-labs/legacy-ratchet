@@ -5,7 +5,7 @@ import { parseSnapshotText } from './data';
 describe('parseSnapshotText', () => {
   it('treats empty and placeholder text as missing', () => {
     expect(parseSnapshotText('')).toEqual({ status: 'missing' });
-    expect(parseSnapshotText(' __LEGACY_RATCHET_DATA__ ')).toEqual({ status: 'missing' });
+    expect(parseSnapshotText(' __MIGRATION_TRACKER_DATA__ ')).toEqual({ status: 'missing' });
   });
 
   it('rejects other schema versions', () => {

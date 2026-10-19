@@ -20,7 +20,7 @@ afterEach(() => {
 const ESC = String.fromCharCode(27);
 
 function setupBaselined(config: unknown = FORMS_DATES_CONFIG): string {
-  repo.writeJson('legacy.json', config);
+  repo.writeJson('migrations.json', config);
   repo.write('src/a.ts', "import { reduxForm } from 'redux-form';\nimport moment from 'moment';\n");
   repo.commit('initial');
   return repo.commit('noop');
@@ -44,29 +44,29 @@ describe('global behaviour', () => {
 
   it('accepts global options after the subcommand', async () => {
     const app = 'packages/app';
-    repo.writeJson(`${app}/legacy.json`, FORMS_DATES_CONFIG);
+    repo.writeJson(`${app}/migrations.json`, FORMS_DATES_CONFIG);
     repo.write(`${app}/src/a.ts`, "import { reduxForm } from 'redux-form';\n");
     const create = await repo.run(['baseline', 'create', '--root', app, '--quiet']);
     expect(create).toEqual({ code: 0, stdout: '', stderr: '' });
-    expect(repo.exists(`${app}/.legacy/baseline.json`)).toBe(true);
+    expect(repo.exists(`${app}/.migrations/baseline.json`)).toBe(true);
     const check = await repo.run(['check', '--root', app, '--format', 'json', '--no-color']);
     expect(check.code).toBe(0);
-    const other = await repo.run(['scan', '--config', `${app}/legacy.json`, '--root', app, '--format', 'json']);
+    const other = await repo.run(['scan', '--config', `${app}/migrations.json`, '--root', app, '--format', 'json']);
     expect(JSON.parse(other.stdout).sites).toHaveLength(1);
   });
 
   it('resolves --config against cwd and reports a missing config', async () => {
     const r = await repo.run(['validate']);
     expect(r.code).toBe(2);
-    expect(r.stderr).toBe('error: No config found at legacy.json. Run "legacy init" to create one.\n');
+    expect(r.stderr).toBe('error: No config found at migrations.json. Run "migration-tracker init" to create one.\n');
     repo.writeJson('conf/custom.json', FORMS_DATES_CONFIG);
     expect((await repo.run(['validate', '--config', 'custom.json'], { cwd: repo.path('conf') })).code).toBe(0);
   });
 
-  it('prints the stack only with LEGACY_RATCHET_DEBUG=1', async () => {
+  it('prints the stack only with MIGRATION_TRACKER_DEBUG=1', async () => {
     const plain = await repo.run(['validate']);
     expect(plain.stderr.split('\n').filter(Boolean)).toHaveLength(1);
-    const debug = await repo.run(['validate'], { env: { LEGACY_RATCHET_DEBUG: '1' } });
+    const debug = await repo.run(['validate'], { env: { MIGRATION_TRACKER_DEBUG: '1' } });
     expect(debug.stderr).toContain('CliError');
   });
 });
@@ -85,33 +85,33 @@ describe('init', () => {
     const r = await repo.run(['init']);
     expect(r.stdout).toContain('hint: "lodash"');
     expect(r.stdout).toContain('"tslint"');
-    expect(repo.read('legacy.json')).not.toContain('tslint');
-    expect(repo.read('legacy.json').endsWith('}\n')).toBe(true);
+    expect(repo.read('migrations.json')).not.toContain('tslint');
+    expect(repo.read('migrations.json').endsWith('}\n')).toBe(true);
   });
 });
 
 describe('validate', () => {
   it('prints issues as path: message and exits 2', async () => {
-    repo.writeJson('legacy.json', { version: 2, groups: { Bad: { old: [], new: [] } } });
+    repo.writeJson('migrations.json', { version: 2, groups: { Bad: { old: [], new: [] } } });
     const r = await repo.run(['validate']);
     expect(r.code).toBe(2);
-    expect(r.stderr).toContain('✖ legacy.json is invalid:');
+    expect(r.stderr).toContain('✖ migrations.json is invalid:');
     expect(r.stderr).toMatch(/^version: .+$/m);
     expect(r.stderr).toMatch(/^groups\.Bad.*: .+$/m);
   });
 
   it('reports JSON syntax errors at (root)', async () => {
-    repo.write('legacy.json', '{ nope');
+    repo.write('migrations.json', '{ nope');
     const r = await repo.run(['validate']);
     expect(r.code).toBe(2);
     expect(r.stderr).toMatch(/^\(root\): /m);
   });
 
   it('makes other commands exit 2 on invalid config', async () => {
-    repo.writeJson('legacy.json', { version: 1, groups: {} });
+    repo.writeJson('migrations.json', { version: 1, groups: {} });
     const r = await repo.run(['check']);
     expect(r.code).toBe(2);
-    expect(r.stderr).toContain('Invalid config legacy.json');
+    expect(r.stderr).toContain('Invalid config migrations.json');
   });
 });
 
@@ -201,7 +201,7 @@ describe('check', () => {
       groups: { forms: { old: ['redux-form'], new: ['a', 'b'], enforcement: { mode: 'ratchet', severity: 'warn' } } },
     };
     setupBaselined(config);
-    repo.writeJson('.legacy/baseline.json', {
+    repo.writeJson('.migrations/baseline.json', {
       schemaVersion: 1,
       configDigest: 'sha256:x',
       scannerVersion: '0',
@@ -216,11 +216,11 @@ describe('check', () => {
   it('warns about suppressions without a reason', async () => {
     setupBaselined();
     expect((await repo.run(['baseline', 'create'])).code).toBe(0);
-    repo.write('src/n.ts', "// legacy-ratchet-disable-next-line forms\nimport 'redux-form';\n");
+    repo.write('src/n.ts', "// migration-tracker-disable-next-line forms\nimport 'redux-form';\n");
     const r = await repo.run(['check', '--no-color']);
     expect(r.code).toBe(1);
     expect(r.stdout).toContain('⚠ src/n.ts:2: suppression requires a reason after --');
-    repo.write('src/n.ts', "// legacy-ratchet-disable-next-line forms -- migrating in Q3\nimport 'redux-form';\n");
+    repo.write('src/n.ts', "// migration-tracker-disable-next-line forms -- migrating in Q3\nimport 'redux-form';\n");
     const ok = await repo.run(['check', '--format', 'json']);
     expect(ok.code).toBe(0);
     expect(JSON.parse(ok.stdout).suppressedCount).toBe(1);
@@ -323,7 +323,7 @@ describe('check formats', () => {
     expect(r.code).toBe(1);
     expect(r.stdout).toBe(
       [
-        '## legacy-ratchet',
+        '## migration-tracker',
         '',
         '**✖ Check failed.** Legacy sites: 2 remaining | 1 retired | 1 new violation',
         '',
@@ -336,7 +336,7 @@ describe('check formats', () => {
         '',
         '- ✖ **forms**: [src/c.ts:2](src/c.ts#L2) — New import of "redux-form" is not allowed. Preferred replacement: "react-hook-form". [Migration guide](https://example.com/forms)',
         '',
-        '🎉 1 legacy site retired. Run `legacy baseline update` and commit `.legacy/baseline.json` to lock in the progress.',
+        '🎉 1 legacy site retired. Run `migration-tracker baseline update` and commit `.migrations/baseline.json` to lock in the progress.',
         '',
       ].join('\n'),
     );
@@ -350,13 +350,13 @@ describe('check formats', () => {
     expect(r.code).toBe(1);
     expect(r.stdout).toBe(
       [
-        '::error file=src/c.ts,line=2,col=23,title=legacy-ratchet/forms::New import of "redux-form" is not allowed. Preferred replacement: "react-hook-form" Migration guide: https://example.com/forms',
+        '::error file=src/c.ts,line=2,col=23,title=migration-tracker/forms::New import of "redux-form" is not allowed. Preferred replacement: "react-hook-form" Migration guide: https://example.com/forms',
         'Legacy sites: 2 remaining | 1 retired | 1 new violation',
         '',
       ].join('\n'),
     );
     const written = readFileSync(summary, 'utf8');
-    expect(written.startsWith('# previous step\n## legacy-ratchet\n')).toBe(true);
+    expect(written.startsWith('# previous step\n## migration-tracker\n')).toBe(true);
     expect(written).toContain('| forms | ratchet | 1 | 1 | 1 |');
     expect(written.endsWith('\n')).toBe(true);
   });
@@ -364,21 +364,21 @@ describe('check formats', () => {
   it('github warnings, expired exceptions and baseline additions', async () => {
     const base = await prepare();
     repo.remove('src/c.ts');
-    repo.write('src/w.ts', "// legacy-ratchet-disable-line\nimport 'moment'; // legacy-ratchet-disable-line\n");
+    repo.write('src/w.ts', "// migration-tracker-disable-line\nimport 'moment'; // migration-tracker-disable-line\n");
     const config = {
       ...FORMS_DATES_CONFIG,
       exceptions: [{ groupId: 'forms', files: ['x/**'], reason: 'r', owner: '@o', expires: '2001-02-03' }],
     };
-    repo.writeJson('legacy.json', config);
-    const b = JSON.parse(repo.read('.legacy/baseline.json'));
+    repo.writeJson('migrations.json', config);
+    const b = JSON.parse(repo.read('.migrations/baseline.json'));
     b.allowed = [...b.allowed, 'forms|src/q.ts|import|redux-form'].sort();
-    repo.writeJson('.legacy/baseline.json', b);
+    repo.writeJson('.migrations/baseline.json', b);
     const r = await repo.run(['check', '--format', 'github', '--base', base]);
     expect(r.code).toBe(1);
     expect(r.stdout.split('\n')).toEqual([
-      '::error file=legacy.json,title=legacy-ratchet/forms::Exception exceptions[0] for "forms" expired on 2001-02-03 (owner @o): r',
-      '::error file=.legacy/baseline.json,title=legacy-ratchet/baseline::Unauthorized baseline addition: forms|src/q.ts|import|redux-form. The baseline may only shrink.',
-      '::warning file=src/w.ts,line=2,col=8,title=legacy-ratchet::suppression requires a reason after --',
+      '::error file=migrations.json,title=migration-tracker/forms::Exception exceptions[0] for "forms" expired on 2001-02-03 (owner @o): r',
+      '::error file=.migrations/baseline.json,title=migration-tracker/baseline::Unauthorized baseline addition: forms|src/q.ts|import|redux-form. The baseline may only shrink.',
+      '::warning file=src/w.ts,line=2,col=8,title=migration-tracker::suppression requires a reason after --',
       'Legacy sites: 2 remaining | 2 retired | 0 new violations',
       '',
     ]);
@@ -388,7 +388,7 @@ describe('check formats', () => {
 describe('subdirectory root', () => {
   it('handles --base, --changed-since and github paths relative to the repo', async () => {
     const app = 'packages/app';
-    repo.writeJson(`${app}/legacy.json`, FORMS_DATES_CONFIG);
+    repo.writeJson(`${app}/migrations.json`, FORMS_DATES_CONFIG);
     repo.write(`${app}/src/a.ts`, "import { reduxForm } from 'redux-form';\n");
     repo.write('outside/z.ts', "import { reduxForm } from 'redux-form';\n");
     expect((await repo.run(['baseline', 'create', '--root', app])).code).toBe(0);
@@ -402,16 +402,16 @@ describe('subdirectory root', () => {
     repo.write('outside/y.ts', "import 'redux-form';\n");
     const changed = await repo.run(['check', '--root', app, '--changed-since', base, '--format', 'github']);
     expect(changed.code).toBe(1);
-    expect(changed.stdout).toContain('::error file=packages/app/src/new.ts,line=1,col=8,title=legacy-ratchet/forms::');
+    expect(changed.stdout).toContain('::error file=packages/app/src/new.ts,line=1,col=8,title=migration-tracker/forms::');
     expect(changed.stdout).toContain('Legacy sites: 1 remaining | 0 retired | 1 new violation');
 
     const fromInside = await repo.run(['check', '--changed-since', base, '--format', 'json'], { cwd: repo.path(app) });
     expect(JSON.parse(fromInside.stdout).violations.map((v: { filePath: string }) => v.filePath)).toEqual(['src/new.ts']);
 
     repo.remove(`${app}/src/new.ts`);
-    const b = JSON.parse(repo.read(`${app}/.legacy/baseline.json`));
+    const b = JSON.parse(repo.read(`${app}/.migrations/baseline.json`));
     b.allowed = [...b.allowed, 'forms|src/q.ts|import|redux-form'].sort();
-    repo.writeJson(`${app}/.legacy/baseline.json`, b);
+    repo.writeJson(`${app}/.migrations/baseline.json`, b);
     const tampered = await repo.run(['check', '--root', app, '--base', base]);
     expect(tampered.code).toBe(1);
     expect(tampered.stdout).toContain('Unauthorized baseline addition: forms|src/q.ts|import|redux-form');
@@ -434,14 +434,14 @@ describe('subdirectory root', () => {
     setupBaselined();
     const u = await repo.run(['baseline', 'update']);
     expect(u.code).toBe(2);
-    expect(u.stderr).toContain('legacy baseline create');
+    expect(u.stderr).toContain('migration-tracker baseline create');
     expect((await repo.run(['baseline', 'verify', '--base', 'HEAD'])).code).toBe(2);
   });
 });
 
 describe('baseline migrate', () => {
   function writeV1(allowed: string[]): void {
-    repo.writeJson('.legacy/baseline.json', {
+    repo.writeJson('.migrations/baseline.json', {
       schemaVersion: 1,
       configDigest: 'sha256:x',
       scannerVersion: '0.1.0',
@@ -451,7 +451,7 @@ describe('baseline migrate', () => {
   }
 
   it('upgrades a v1 baseline, reconciling import-equals and never adding new pairs', async () => {
-    repo.writeJson('legacy.json', FORMS_DATES_CONFIG);
+    repo.writeJson('migrations.json', FORMS_DATES_CONFIG);
     repo.write('src/a.ts', "import { reduxForm } from 'redux-form';\nimport { Field } from 'redux-form';\nimport moment from 'moment';\n");
     repo.write('src/eq.ts', "import forms = require('redux-form');\n");
     writeV1([
@@ -464,21 +464,21 @@ describe('baseline migrate', () => {
 
     const legacyCheck = await repo.run(['check', '--no-color']);
     expect(legacyCheck.code).toBe(1);
-    expect(legacyCheck.stderr.match(/legacy baseline migrate/g)).toHaveLength(1);
+    expect(legacyCheck.stderr.match(/migration-tracker baseline migrate/g)).toHaveLength(1);
 
     const r = await repo.run(['baseline', 'migrate', '--no-color']);
     expect(r.code).toBe(0);
     expect(r.stderr).toBe('');
     expect(r.stdout).toBe(
       [
-        'Migrated .legacy/baseline.json to schemaVersion 2: 3 mapped sites, 1 reconciled-added, 2 dropped (2 allowed).',
+        'Migrated .migrations/baseline.json to schemaVersion 2: 3 mapped sites, 1 reconciled-added, 2 dropped (2 allowed).',
         '  + forms|src/eq.ts|require|redux-form',
         '  - dates|src/gone.ts|import|moment',
         '  - forms|src/eq.ts|import|redux-form',
         '',
       ].join('\n'),
     );
-    const written = JSON.parse(repo.read('.legacy/baseline.json'));
+    const written = JSON.parse(repo.read('.migrations/baseline.json'));
     expect(written.schemaVersion).toBe(2);
     expect(written).not.toHaveProperty('upgradedFrom');
     expect(written.allowed).toEqual(['forms|src/a.ts|import|redux-form', 'forms|src/eq.ts|require|redux-form']);
@@ -499,7 +499,7 @@ describe('baseline migrate', () => {
     setupBaselined();
     const r = await repo.run(['baseline', 'migrate']);
     expect(r.code).toBe(2);
-    expect(r.stderr).toContain('No baseline found at .legacy/baseline.json');
+    expect(r.stderr).toContain('No baseline found at .migrations/baseline.json');
   });
 });
 
@@ -507,7 +507,7 @@ describe('report', () => {
   it('tolerates blank and malformed history lines', async () => {
     setupBaselined();
     repo.write(
-      '.legacy/history.jsonl',
+      '.migrations/history.jsonl',
       [
         JSON.stringify({ generatedAt: '2026-01-01T00:00:00.000Z', totals: { forms: 3 } }),
         '',
@@ -522,7 +522,7 @@ describe('report', () => {
     expect(r.stderr).toContain('history.jsonl:4: skipping malformed history entry');
     const snapshot = JSON.parse(r.stdout);
     expect(snapshot.history.map((h: { totals: Record<string, number> }) => h.totals.forms)).toEqual([3, 2, 1]);
-    const lines = repo.read('.legacy/history.jsonl').split('\n');
+    const lines = repo.read('.migrations/history.jsonl').split('\n');
     expect(lines.at(-1)).toBe('');
     expect(JSON.parse(lines.at(-2)!).totals).toEqual({ forms: 1, dates: 1 });
     expect(JSON.parse(lines.at(-2)!).revision.commit).toMatch(/^[0-9a-f]{40}$/);
@@ -588,9 +588,9 @@ describe('report', () => {
     expect(JSON.parse(r.stdout).groups[0].byOwner).toEqual({ Unowned: 1 });
   });
 
-  it('reads and appends a --history file instead of .legacy/history.jsonl', async () => {
+  it('reads and appends a --history file instead of .migrations/history.jsonl', async () => {
     setupBaselined();
-    repo.write('.legacy/history.jsonl', `${JSON.stringify({ generatedAt: '2026-01-01T00:00:00.000Z', totals: { forms: 50 } })}\n`);
+    repo.write('.migrations/history.jsonl', `${JSON.stringify({ generatedAt: '2026-01-01T00:00:00.000Z', totals: { forms: 50 } })}\n`);
     repo.write('data/h.jsonl', `${JSON.stringify({ generatedAt: '2026-01-01T00:00:00.000Z', totals: { forms: 4 } })}\n`);
     repo.write('src/n.ts', "import { useForm } from 'react-hook-form';\n");
     const r = await repo.run(['report', '--format', 'json', '--history', 'data/h.jsonl', '--append-history']);
@@ -604,14 +604,14 @@ describe('report', () => {
     const appended = JSON.parse(lines[1]!);
     expect(appended.totals).toEqual({ forms: 1, dates: 1 });
     expect(appended.newTotals).toEqual({ forms: 1, dates: 0 });
-    expect(repo.read('.legacy/history.jsonl').trim().split('\n')).toHaveLength(1);
+    expect(repo.read('.migrations/history.jsonl').trim().split('\n')).toHaveLength(1);
   });
 
   it('renders html with a provided template', async () => {
     setupBaselined();
     let stdout = '';
     const code = await reportCommand(
-      { root: repo.dir, output: 'r.html', template: '<html><script id="legacy-ratchet-data" type="application/json">__LEGACY_RATCHET_DATA__</script></html>' },
+      { root: repo.dir, output: 'r.html', template: '<html><script id="migration-tracker-data" type="application/json">__MIGRATION_TRACKER_DATA__</script></html>' },
       { stdout: (s) => (stdout += s), stderr: () => {}, cwd: repo.dir, env: {} },
     );
     expect(code).toBe(0);
@@ -626,11 +626,11 @@ describe('report', () => {
     setupBaselined();
     const r = await repo.run(['report']);
     expect(r.code).toBe(0);
-    expect(r.stderr).toContain('Wrote legacy-report.html');
-    const html = repo.read('legacy-report.html');
-    expect(html).toContain('legacy-ratchet-data');
+    expect(r.stderr).toContain('Wrote migration-report.html');
+    const html = repo.read('migration-report.html');
+    expect(html).toContain('migration-tracker-data');
     expect(html).toContain('forms|src/a.ts|import|redux-form');
-    expect(html).not.toContain('__LEGACY_RATCHET_DATA__');
+    expect(html).not.toContain('__MIGRATION_TRACKER_DATA__');
     expect(path.basename(dashboardDist)).toBe('index.html');
   });
 });

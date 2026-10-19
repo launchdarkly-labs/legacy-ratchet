@@ -6,7 +6,7 @@ import type {
   ReportSnapshot,
   ReportTotals,
   SiteKind,
-} from '@legacy-ratchet/core';
+} from '@migration-tracker/core';
 
 export type ProgressKey =
   | 'start'

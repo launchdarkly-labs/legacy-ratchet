@@ -9,8 +9,8 @@ describe('constants', () => {
   });
 
   it('exposes well-known paths', () => {
-    expect(CONFIG_FILENAME).toBe('legacy.json');
-    expect(BASELINE_PATH).toBe('.legacy/baseline.json');
-    expect(HISTORY_PATH).toBe('.legacy/history.jsonl');
+    expect(CONFIG_FILENAME).toBe('migrations.json');
+    expect(BASELINE_PATH).toBe('.migrations/baseline.json');
+    expect(HISTORY_PATH).toBe('.migrations/history.jsonl');
   });
 });

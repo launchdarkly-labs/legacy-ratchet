@@ -1,5 +1,5 @@
 import path from 'node:path';
-import { BASELINE_PATH } from '@legacy-ratchet/core';
+import { BASELINE_PATH } from '@migration-tracker/core';
 import { reportEngineWarnings, resolveEngineOptions, type EngineFlags } from '../engine-options.js';
 import { CliError, withErrors } from '../errors.js';
 import { formatCheckMarkdown } from '../format/markdown.js';
@@ -31,7 +31,7 @@ export async function runCheck(
   const missing = ratchetGroupsWithoutBaseline(config, baseline);
   if (missing.length > 0) {
     throw new CliError(
-      `No baseline found at ${displayPath(ctx, path.join(ctx.root, BASELINE_PATH))}, but ${missing.join(', ')} use ratchet mode. Run "legacy baseline create" and commit it.`,
+      `No baseline found at ${displayPath(ctx, path.join(ctx.root, BASELINE_PATH))}, but ${missing.join(', ')} use ratchet mode. Run "migration-tracker baseline create" and commit it.`,
     );
   }
 

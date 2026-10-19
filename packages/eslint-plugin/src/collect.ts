@@ -1,4 +1,4 @@
-import type { ImportKind, RawImport } from '@legacy-ratchet/core';
+import type { ImportKind, RawImport } from '@migration-tracker/core';
 import { ASTUtils, type TSESLint, type TSESTree } from '@typescript-eslint/utils';
 import { collectDirectives, findSuppression } from './suppression.js';
 

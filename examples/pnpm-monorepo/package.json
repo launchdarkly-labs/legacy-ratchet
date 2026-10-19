@@ -1,12 +1,12 @@
 {
-  "name": "@legacy-ratchet-examples/pnpm-monorepo",
+  "name": "@migration-tracker-examples/pnpm-monorepo",
   "version": "0.0.0",
   "private": true,
   "type": "module",
-  "description": "Scanning fixture: a pnpm monorepo governed by one repository-root legacy.json.",
+  "description": "Scanning fixture: a pnpm monorepo governed by one repository-root migrations.json.",
   "scripts": {
-    "legacy:check": "node ../../packages/cli/dist/bin.js check",
-    "legacy:scan": "node ../../packages/cli/dist/bin.js scan",
-    "legacy:report": "node ../../packages/cli/dist/bin.js report --format html"
+    "migrations:check": "node ../../packages/cli/dist/bin.js check",
+    "migrations:scan": "node ../../packages/cli/dist/bin.js scan",
+    "migrations:report": "node ../../packages/cli/dist/bin.js report --format html"
   }
 }

@@ -145,6 +145,6 @@
     "groups"
   ],
   "additionalProperties": false,
-  "title": "legacy-ratchet configuration (legacy.json)",
+  "title": "migration-tracker configuration (migrations.json)",
   "description": "Declares deprecated (\"old\") packages, their preferred replacements, and how new import sites are enforced."
 }

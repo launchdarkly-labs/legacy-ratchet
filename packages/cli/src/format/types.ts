@@ -1,5 +1,5 @@
-import type { CheckResult, ImportSite } from '@legacy-ratchet/core';
-import type { ScanError } from '@legacy-ratchet/scanner';
+import type { CheckResult, ImportSite } from '@migration-tracker/core';
+import type { ScanError } from '@migration-tracker/scanner';
 
 export interface CheckWarning {
   kind: 'missing-suppression-reason' | 'scan-error' | 'unlocated';

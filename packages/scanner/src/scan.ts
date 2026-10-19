@@ -1,6 +1,6 @@
 import { readFile } from 'node:fs/promises';
 import path from 'node:path';
-import type { RawImport } from '@legacy-ratchet/core';
+import type { RawImport } from '@migration-tracker/core';
 import { listFiles } from './files.js';
 import { scanSource } from './parse.js';
 

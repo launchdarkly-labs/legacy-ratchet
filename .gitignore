@@ -3,4 +3,4 @@ dist
 coverage
 *.tsbuildinfo
 /reports/
-.legacy/history.jsonl.tmp
+.migrations/history.jsonl.tmp

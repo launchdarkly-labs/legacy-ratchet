@@ -10,7 +10,7 @@ export interface InitOptions extends GlobalOptions {
 }
 
 export const SAMPLE_CONFIG = {
-  $schema: './node_modules/@legacy-ratchet/core/schema.json',
+  $schema: './node_modules/@migration-tracker/core/schema.json',
   version: 1,
   groups: {
     dates: {
@@ -22,23 +22,23 @@ export const SAMPLE_CONFIG = {
   },
 } as const;
 
-export const LEGACY_README = `# .legacy
+export const MIGRATIONS_README = `# .migrations
 
-This directory is managed by legacy-ratchet.
+This directory is managed by migration-tracker.
 
 - \`baseline.json\` lists the legacy import sites that existed when the baseline was created. They are
-  grandfathered: \`legacy check\` only fails on import sites that are not in this file.
+  grandfathered: \`migration-tracker check\` only fails on import sites that are not in this file.
 - \`history.jsonl\` (optional) stores one snapshot of legacy-site totals per line, appended by
-  \`legacy report --append-history\`, and powers the trend charts in the HTML report.
+  \`migration-tracker report --append-history\`, and powers the trend charts in the HTML report.
 
 ## Workflow
 
-1. Describe deprecated packages in \`legacy.json\` (\`old\` -> \`new\`, enforcement \`report\`, \`ratchet\` or \`ban\`).
-2. Run \`legacy baseline create\` and commit \`.legacy/baseline.json\`.
-3. Run \`legacy check\` in CI. New legacy imports fail the build; existing ones are allowed.
-4. When you remove legacy imports, run \`legacy baseline update\` and commit the smaller baseline.
-   The baseline only ever shrinks: \`legacy baseline update\` never adds allowances, and
-   \`legacy check --base <ref>\` (or \`legacy baseline verify --base <ref>\`) fails if someone adds one by hand.
+1. Describe deprecated packages in \`migrations.json\` (\`old\` -> \`new\`, enforcement \`report\`, \`ratchet\` or \`ban\`).
+2. Run \`migration-tracker baseline create\` and commit \`.migrations/baseline.json\`.
+3. Run \`migration-tracker check\` in CI. New legacy imports fail the build; existing ones are allowed.
+4. When you remove legacy imports, run \`migration-tracker baseline update\` and commit the smaller baseline.
+   The baseline only ever shrinks: \`migration-tracker baseline update\` never adds allowances, and
+   \`migration-tracker check --base <ref>\` (or \`migration-tracker baseline verify --base <ref>\`) fails if someone adds one by hand.
 `;
 
 const CANDIDATES: Record<string, { replacement: string; hintOnly?: boolean }> = {
@@ -72,8 +72,8 @@ export const initCommand = withErrors(async (options: InitOptions, io: Io): Prom
     throw new CliError(`${displayPath(ctx, ctx.configPath)} already exists. Use --force to overwrite it.`);
   }
   await writeTextFile(ctx.configPath, JSON.stringify(SAMPLE_CONFIG, null, 2));
-  const readme = path.join(ctx.root, '.legacy', 'README.md');
-  if (options.force || !(await exists(readme))) await writeTextFile(readme, LEGACY_README);
+  const readme = path.join(ctx.root, '.migrations', 'README.md');
+  if (options.force || !(await exists(readme))) await writeTextFile(readme, MIGRATIONS_README);
   info(ctx, `Created ${displayPath(ctx, ctx.configPath)} and ${displayPath(ctx, readme)}`);
 
   const detected = await detectCandidates(ctx);
@@ -87,6 +87,6 @@ export const initCommand = withErrors(async (options: InitOptions, io: Io): Prom
     }
   }
   info(ctx, '');
-  info(ctx, 'Next: edit legacy.json, then run "legacy baseline create" and commit .legacy/baseline.json.');
+  info(ctx, 'Next: edit migrations.json, then run "migration-tracker baseline create" and commit .migrations/baseline.json.');
   return 0;
 });

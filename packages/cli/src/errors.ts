@@ -22,7 +22,7 @@ export function reportError(err: unknown, io: Io): number {
   if (err instanceof CliError) {
     for (const d of err.details) io.stderr(`  ${d}\n`);
   }
-  if (envOf(io).LEGACY_RATCHET_DEBUG === '1' && err instanceof Error && err.stack) {
+  if (envOf(io).MIGRATION_TRACKER_DEBUG === '1' && err instanceof Error && err.stack) {
     io.stderr(`${err.stack}\n`);
   }
   return err instanceof CliError ? err.exitCode : 2;

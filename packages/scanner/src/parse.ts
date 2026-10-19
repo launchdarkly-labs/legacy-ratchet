@@ -1,4 +1,4 @@
-import type { ImportKind, RawImport } from '@legacy-ratchet/core';
+import type { ImportKind, RawImport } from '@migration-tracker/core';
 import ts from 'typescript';
 import { collectDirectives, findSuppression } from './suppression.js';
 

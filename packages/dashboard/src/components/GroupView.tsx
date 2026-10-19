@@ -1,5 +1,5 @@
 import { useCallback, useDeferredValue, useMemo, useState } from 'react';
-import type { ImportSite } from '@legacy-ratchet/core';
+import type { ImportSite } from '@migration-tracker/core';
 
 import { aggregateFiles, type DashboardGroup, filterSites, formatNumber, ownerOf, sortedEntries } from '../model';
 import { formatPct, type GroupProgress, METRIC_HINT, progressHint, safeHref } from '../progress';

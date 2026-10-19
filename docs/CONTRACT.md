@@ -4,19 +4,19 @@ Types live in `packages/core/src/types.ts`. Do not change them without updating 
 
 ## Package boundaries
 
-- `@legacy-ratchet/core` — pure: no filesystem, process, or git access. Exports everything below.
-- `@legacy-ratchet/scanner` — filesystem + TypeScript compiler API. Policy-agnostic: it emits `RawImport[]`.
-- `@legacy-ratchet/cli` — composes scanner + core; owns all file IO for `legacy.json`, `.legacy/baseline.json`, `.legacy/history.jsonl`, git calls.
-- `eslint-plugin-legacy-ratchet` — uses core only (never scanner); builds `RawImport`s from ESTree.
-- `@legacy-ratchet/dashboard` — React app built to one self-contained `dist/index.html`. Reads a `ReportSnapshot` from `<script id="legacy-ratchet-data" type="application/json">…</script>` in the document.
+- `@migration-tracker/core` — pure: no filesystem, process, or git access. Exports everything below.
+- `@migration-tracker/scanner` — filesystem + TypeScript compiler API. Policy-agnostic: it emits `RawImport[]`.
+- `@migration-tracker/cli` — composes scanner + core; owns all file IO for `migrations.json`, `.migrations/baseline.json`, `.migrations/history.jsonl`, git calls.
+- `eslint-plugin-migration-tracker` — uses core only (never scanner); builds `RawImport`s from ESTree.
+- `@migration-tracker/dashboard` — React app built to one self-contained `dist/index.html`. Reads a `ReportSnapshot` from `<script id="migration-tracker-data" type="application/json">…</script>` in the document.
 
 ## core exports (exact signatures)
 
 ```ts
 export * from './types.js';
-export const CONFIG_FILENAME = 'legacy.json';
-export const BASELINE_PATH = '.legacy/baseline.json';
-export const HISTORY_PATH = '.legacy/history.jsonl';
+export const CONFIG_FILENAME = 'migrations.json';
+export const BASELINE_PATH = '.migrations/baseline.json';
+export const HISTORY_PATH = '.migrations/history.jsonl';
 export const CORE_VERSION: string;                 // equals package version, e.g. '0.2.0'
 
 export function validateConfig(input: unknown): ValidationResult;
@@ -64,7 +64,7 @@ export function formatViolation(v: Violation): string;            // plain text,
 **Identity** (file-level, `schemaVersion: 2`):
 - `ImportKind` is the syntactic kind: `import`, `require`, `dynamic-import`, `export-from`, `import-equals`. `SiteKind` is the module-system kind: `siteKindOf` maps `import`/`export-from`/`dynamic-import` → `import` and `require`/`import-equals` → `require`.
 - `siteId` = `${groupId}|${filePath}|${importKind}|${moduleSpecifier}` where `importKind` is a `SiteKind`. There is no occurrence: every import of the same specifier with the same module system in a file is one site. This matches dependency-cruiser's per-file merge key.
-- `parseSiteId` is its inverse: split on `|`, exactly 4 parts, kind must be a `SiteKind`. A 5-part (v1) id throws an error telling the user to run `legacy baseline migrate`.
+- `parseSiteId` is its inverse: split on `|`, exactly 4 parts, kind must be a `SiteKind`. A 5-part (v1) id throws an error telling the user to run `migration-tracker baseline migrate`.
 - `migrateSiteIdV1(id)`: 5-part v1 id → 4-part v2 id (drops the occurrence, maps the kind with `siteKindOf`); `undefined` if malformed.
 - `siteIdForImport(config, raw)` = the id `collectSites` would give `raw` (`findGroup` + `normalizePath` + `siteKindOf`), or `undefined` if no group matches.
 - `fingerprint(kind, spec)` = first 16 hex chars of sha256 of `${kind}\u0000${spec}` (use `node:crypto`), with the `SiteKind`.
@@ -102,7 +102,7 @@ Use `⚠` instead of `✖` for severity `warn`. Multiple replacements: `Preferre
 - `createBaseline` → `allowed` = sorted unique ids of all sites (whatever mode). `generatedAt` = ISO string of `now`.
 - `updateBaseline` is monotonic: new `allowed` = `previous.allowed ∩ current site ids` (never adds). `removed` = previous minus new, sorted. Refreshes digest/scannerVersion/generatedAt/revision.
 - `diffBaselines` → `added` = in candidate not base; `removed` = in base not candidate; both sorted. When `base.upgradedFrom === 1`, a candidate id is not added if its `(group, file, specifier)` exists in base under any kind, so `verify --base` works across the migration.
-- `reconcileMigratedBaseline(v1, current, meta)` → `allowed` = v1 ids mapped to v2 that are present in `current`, plus current ids whose `(group, file, specifier)` appears in v1 under any kind (covers `import x = require()` moving from `import` to `require`). It never allows a `(file, specifier)` pair v1 lacked. `added` = ids allowed only through that kind-less match; `dropped` = mapped ids not present now. Used by `legacy baseline migrate`.
+- `reconcileMigratedBaseline(v1, current, meta)` → `allowed` = v1 ids mapped to v2 that are present in `current`, plus current ids whose `(group, file, specifier)` appears in v1 under any kind (covers `import x = require()` moving from `import` to `require`). It never allows a `(file, specifier)` pair v1 lacked. `added` = ids allowed only through that kind-less match; `dropped` = mapped ids not present now. Used by `migration-tracker baseline migrate`.
 
 **Report** (`buildReport`, `schemaVersion: 2`): `groups` in config key order including groups with 0 sites; `byPackage` keyed by `packageName`; `topFiles` sorted by count desc then path asc, limited to `opts.topFiles ?? 10`; `history` = `opts.history ?? []`. `historyEntry` = `{ generatedAt, identityVersion: 2, revision, totals: { [groupId]: sites }, newTotals: { [groupId]: newSites } }`. Progress, adoption and ownership fields are specified in [CONTRACT-PROGRESS.md](CONTRACT-PROGRESS.md).
 
@@ -121,7 +121,7 @@ export function scanFiles(opts: { root: string; ignore?: readonly string[]; file
 - `importKind`: `import`, `import-equals` (`import x = require('m')`), `require`, `dynamic-import`, `export-from`. `typeOnly` true for `import type`/`export type` and for `import { type a, type b }` when every specifier is type-only.
 - Line/column 1-based, of the module specifier string literal's start (the quote).
 - Inline suppressions: a comment on the line directly above the import statement (or trailing on the same line) of the form
-  `// legacy-ratchet-disable-next-line [groupId[,groupId...]] -- reason` (above) or `// legacy-ratchet-disable-line [groupIds] -- reason` (same line). Block comments `/* ... */` with the same text also work. Reason is the text after `--`, trimmed; if missing, emit the suppression with `reason: ''` (core treats it as not suppressed; the CLI reports it).
+  `// migration-tracker-disable-next-line [groupId[,groupId...]] -- reason` (above) or `// migration-tracker-disable-line [groupIds] -- reason` (same line). Block comments `/* ... */` with the same text also work. Reason is the text after `--`, trimmed; if missing, emit the suppression with `reason: ''` (core treats it as not suppressed; the CLI reports it).
 - Parse with `ts.createSourceFile` using ScriptKind by extension (TSX for .tsx/.jsx and .js — use JSX-enabled kinds for .js too). Parse errors in a file are tolerated (TS parser is error-recovering); unreadable files go to `errors`.
 
 ## Addendum (post-wave-1)

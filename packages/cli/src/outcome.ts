@@ -1,5 +1,5 @@
-import { evaluate, parseSiteId, type Baseline, type ImportSite, type LegacyConfig } from '@legacy-ratchet/core';
-import type { ScanError } from '@legacy-ratchet/scanner';
+import { evaluate, parseSiteId, type Baseline, type ImportSite, type LegacyConfig } from '@migration-tracker/core';
+import type { ScanError } from '@migration-tracker/scanner';
 
 import { warningsFor, type CheckOutcome } from './format/types.js';
 

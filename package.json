@@ -1,5 +1,5 @@
 {
-  "name": "legacy-ratchet-monorepo",
+  "name": "migration-tracker-monorepo",
   "private": true,
   "type": "module",
   "packageManager": "pnpm@12.6.0",
@@ -8,7 +8,7 @@
   },
   "scripts": {
     "build": "pnpm --recursive --filter \"./packages/*\" run build",
-    "typecheck": "pnpm --filter @legacy-ratchet/dashboard build && tsc -b packages/core packages/scanner packages/depcruise packages/cli packages/eslint-plugin",
+    "typecheck": "pnpm --filter @migration-tracker/dashboard build && tsc -b packages/core packages/scanner packages/depcruise packages/cli packages/eslint-plugin",
     "test": "vitest run",
     "lint": "pnpm -r run lint"
   },

@@ -1,4 +1,4 @@
-import type { InlineSuppression } from '@legacy-ratchet/core';
+import type { InlineSuppression } from '@migration-tracker/core';
 
 export type DirectiveKind = 'next-line' | 'line';
 
@@ -18,11 +18,11 @@ export interface CommentLike {
   loc: { start: { line: number }; end: { line: number } };
 }
 
-const DIRECTIVE_RE = /^legacy-ratchet-disable-(next-line|line)(?=$|\s|--)/;
+const DIRECTIVE_RE = /^migration-tracker-disable-(next-line|line)(?=$|\s|--)/;
 
 /**
  * Comment body without delimiters. Mirrors `commentBody` in
- * `@legacy-ratchet/scanner/src/suppression.ts`, which works on the raw comment
+ * `@migration-tracker/scanner/src/suppression.ts`, which works on the raw comment
  * text (`//…` or `/*…*\/`); ESTree gives us the text between the delimiters, so
  * the raw form is rebuilt first to keep the two implementations identical.
  */
@@ -39,7 +39,7 @@ function commentBody(value: string, block: boolean): string {
     .trim();
 }
 
-/** Parses one comment; undefined when it is not a legacy-ratchet directive. */
+/** Parses one comment; undefined when it is not a migration-tracker directive. */
 export function parseDirective(
   value: string,
   block: boolean,

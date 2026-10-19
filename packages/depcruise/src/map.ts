@@ -1,6 +1,6 @@
-import { isIgnoredPath, normalizePath } from '@legacy-ratchet/core';
-import type { ImportKind, RawImport } from '@legacy-ratchet/core';
-import { DEFAULT_EXTENSIONS, DEFAULT_IGNORE } from '@legacy-ratchet/scanner';
+import { isIgnoredPath, normalizePath } from '@migration-tracker/core';
+import type { ImportKind, RawImport } from '@migration-tracker/core';
+import { DEFAULT_EXTENSIONS, DEFAULT_IGNORE } from '@migration-tracker/scanner';
 import type { DependencyType, ICruiseResult, IDependency, IModule } from 'dependency-cruiser';
 import path from 'node:path';
 

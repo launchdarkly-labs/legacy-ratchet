@@ -34,9 +34,9 @@ jobs:
         with:
           working-directory: examples/vite-react
           base-ref: ""
-          report-path: legacy-report.html
+          report-path: migration-report.html
           report-args: "--source-url https://example.com/acme/blob/{sha}/{path}#L{line}"
       - name: Report was written
         run: |
-          grep -q 'id="legacy-ratchet-data"' examples/vite-react/legacy-report.html
-          grep -q '"sourceUrlTemplate":"https://example.com/acme/blob/{sha}/{path}#L{line}"' examples/vite-react/legacy-report.html
+          grep -q 'id="migration-tracker-data"' examples/vite-react/migration-report.html
+          grep -q '"sourceUrlTemplate":"https://example.com/acme/blob/{sha}/{path}#L{line}"' examples/vite-react/migration-report.html

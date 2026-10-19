@@ -1,5 +1,5 @@
 import { useCallback, useMemo } from 'react';
-import type { BaselineRevision, ImportKind, ImportSite, SiteKind } from '@legacy-ratchet/core';
+import type { BaselineRevision, ImportKind, ImportSite, SiteKind } from '@migration-tracker/core';
 
 import { type DashboardGroup, formatNumber, ownerOf, siteOwners } from '../model';
 import { safeHref, sourceUrl } from '../progress';

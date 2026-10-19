@@ -27,13 +27,13 @@ async function lazy() {
   return (await import('moment')).default;
 }
 const nested = {
-  // legacy-ratchet-disable-next-line forms -- nested call
+  // migration-tracker-disable-next-line forms -- nested call
   a: require('redux-form'),
   b: [require('moment'), require("request")],
 };
 function f() {
   const x = require(
-    // legacy-ratchet-disable-line -- specifier line
+    // migration-tracker-disable-line -- specifier line
     'redux-form'
   );
 }
@@ -53,32 +53,32 @@ require(\`redux-\${name}\`);
 foo.require('redux-form');
 new require('redux-form');
 declare module 'redux-form' {}
-const s = "// legacy-ratchet-disable-next-line -- inside a string";
+const s = "// migration-tracker-disable-next-line -- inside a string";
 import('lodash');
-// legacy-ratchet-disable-next-line forms,dates -- comma list
+// migration-tracker-disable-next-line forms,dates -- comma list
 import { m1 } from 'moment';
-// legacy-ratchet-disable-next-line forms dates
+// migration-tracker-disable-next-line forms dates
 import { m2 } from 'moment';
-/* legacy-ratchet-disable-next-line http -- block */
+/* migration-tracker-disable-next-line http -- block */
 import req from 'request';
 /**
- * legacy-ratchet-disable-next-line -- multi-line block ending right above
+ * migration-tracker-disable-next-line -- multi-line block ending right above
  */
 import req2 from 'request';
-/* legacy-ratchet-disable-next-line -- multi-line
+/* migration-tracker-disable-next-line -- multi-line
    block, last line above */ import req3 from 'request';
-import req4 from 'request'; // legacy-ratchet-disable-line http -- trailing
-import req5 from 'request'; /* legacy-ratchet-disable-line */
-// legacy-ratchet-disable-next-line -- next wins
-import req6 from 'request'; // legacy-ratchet-disable-line other -- line loses
-/// legacy-ratchet-disable-next-line -- triple slash
+import req4 from 'request'; // migration-tracker-disable-line http -- trailing
+import req5 from 'request'; /* migration-tracker-disable-line */
+// migration-tracker-disable-next-line -- next wins
+import req6 from 'request'; // migration-tracker-disable-line other -- line loses
+/// migration-tracker-disable-next-line -- triple slash
 import req7 from 'request';
-// legacy-ratchet-disable-next-lines -- not a directive
+// migration-tracker-disable-next-lines -- not a directive
 import req8 from 'request';
-//legacy-ratchet-disable-next-line--no spaces
+//migration-tracker-disable-next-line--no spaces
 import req9 from 'request';
 export {
-  // legacy-ratchet-disable-line -- inside braces
+  // migration-tracker-disable-line -- inside braces
   q,
 } from 'redux-form';
 `;
@@ -87,8 +87,8 @@ export const JSX_FILE = `import React from 'react';
 import { reduxForm } from 'redux-form';
 export function Form() {
   return (
-    <div title="// legacy-ratchet-disable-next-line -- jsx attr">
-      {/* legacy-ratchet-disable-next-line -- jsx comment */}
+    <div title="// migration-tracker-disable-next-line -- jsx attr">
+      {/* migration-tracker-disable-next-line -- jsx comment */}
       {require('redux-form').x}
       text
       {require('moment').y}
@@ -100,9 +100,9 @@ const lazy = () => import('redux-form');
 
 export const PLAIN_JS = `'use strict';
 const a = require('redux-form');
-// legacy-ratchet-disable-next-line -- cjs
+// migration-tracker-disable-next-line -- cjs
 const b = require('moment');
 module.exports = { a, b, c: () => import(\`request\`) };
 `;
 
-export const CRLF_BOM = `\uFEFFimport a from 'redux-form';\r\n// legacy-ratchet-disable-next-line -- crlf\r\nimport b from 'moment';\r\n`;
+export const CRLF_BOM = `\uFEFFimport a from 'redux-form';\r\n// migration-tracker-disable-next-line -- crlf\r\nimport b from 'moment';\r\n`;

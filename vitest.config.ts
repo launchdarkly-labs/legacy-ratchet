@@ -6,11 +6,11 @@ const src = (pkg: string) => fileURLToPath(new URL(`./packages/${pkg}/src/index.
 export default defineConfig({
   resolve: {
     alias: {
-      '@legacy-ratchet/core': src('core'),
-      '@legacy-ratchet/scanner': src('scanner'),
-      '@legacy-ratchet/depcruise/map': fileURLToPath(new URL('./packages/depcruise/src/map.ts', import.meta.url)),
-      '@legacy-ratchet/depcruise': src('depcruise'),
-      'eslint-plugin-legacy-ratchet': src('eslint-plugin'),
+      '@migration-tracker/core': src('core'),
+      '@migration-tracker/scanner': src('scanner'),
+      '@migration-tracker/depcruise/map': fileURLToPath(new URL('./packages/depcruise/src/map.ts', import.meta.url)),
+      '@migration-tracker/depcruise': src('depcruise'),
+      'eslint-plugin-migration-tracker': src('eslint-plugin'),
     },
   },
   test: {

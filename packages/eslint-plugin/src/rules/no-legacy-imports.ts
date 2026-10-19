@@ -7,7 +7,7 @@ import {
   suppressesGroup,
   type LegacyConfig,
   type Violation,
-} from '@legacy-ratchet/core';
+} from '@migration-tracker/core';
 import { ESLintUtils, type TSESTree } from '@typescript-eslint/utils';
 import { collectImports, type CollectedImport } from '../collect.js';
 import { loadProject, type RuleOptions } from '../load.js';
@@ -38,7 +38,7 @@ export const noLegacyImports = createRule<[RuleOptions], MessageIds>({
   meta: {
     type: 'problem',
     docs: {
-      description: 'Disallow new import sites of legacy packages listed in legacy.json that are not in the baseline',
+      description: 'Disallow new import sites of legacy packages listed in migrations.json that are not in the baseline',
     },
     schema: [
       {
@@ -54,8 +54,8 @@ export const noLegacyImports = createRule<[RuleOptions], MessageIds>({
     messages: {
       newImport: 'New import of "{{specifier}}" is not allowed ({{group}}).{{replacementText}}{{docsText}}',
       banned: 'Import of "{{specifier}}" is banned ({{group}}).{{replacementText}}{{docsText}}',
-      invalidConfig: 'legacy-ratchet: invalid {{configPath}}: {{issues}}',
-      invalidBaseline: 'legacy-ratchet: invalid baseline {{baselinePath}}: {{message}}',
+      invalidConfig: 'migration-tracker: invalid {{configPath}}: {{issues}}',
+      invalidBaseline: 'migration-tracker: invalid baseline {{baselinePath}}: {{message}}',
     },
   },
   defaultOptions: [{}],

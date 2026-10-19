@@ -1,8 +1,8 @@
-import type { ImportKind, ImportSite } from '@legacy-ratchet/core';
+import type { ImportKind, ImportSite } from '@migration-tracker/core';
 
 import { type DashboardGroup, type DashboardTotals, type SeriesSnapshot, siteKindOf } from './model';
 
-export const DATA_ELEMENT_ID = 'legacy-ratchet-data';
+export const DATA_ELEMENT_ID = 'migration-tracker-data';
 
 export type LoadState =
   | { status: 'ready'; snapshot: SeriesSnapshot; sample?: boolean }

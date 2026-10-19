@@ -1,5 +1,5 @@
-import type { RawImport } from '@legacy-ratchet/core';
-import { listFiles } from '@legacy-ratchet/scanner';
+import type { RawImport } from '@migration-tracker/core';
+import { listFiles } from '@migration-tracker/scanner';
 import type { ICruiseOptions, ICruiseResult } from 'dependency-cruiser';
 import { existsSync, readFileSync, realpathSync } from 'node:fs';
 import { readFile } from 'node:fs/promises';
@@ -96,12 +96,12 @@ export function buildCruiseOptions(
 
   for (const key of DROPPED_FILTERS) {
     if (u[key] !== undefined) {
-      warnings.push(`depcruise option "${key}" is ignored: legacy-ratchet needs every import of every listed file`);
+      warnings.push(`depcruise option "${key}" is ignored: migration-tracker needs every import of every listed file`);
     }
   }
   for (const key of UNSUPPORTED_CONFIGS) {
     if (u[key] !== undefined) {
-      warnings.push(`depcruise option "${key}" is ignored by the legacy-ratchet engine`);
+      warnings.push(`depcruise option "${key}" is ignored by the migration-tracker engine`);
     }
   }
 
@@ -131,7 +131,7 @@ export function buildCruiseOptions(
 
   if (ctx.cache !== false) {
     options.cache = {
-      folder: ctx.cache ?? path.join(ctx.root, '.cache/legacy-ratchet/depcruise'),
+      folder: ctx.cache ?? path.join(ctx.root, '.cache/migration-tracker/depcruise'),
       strategy: 'content',
     };
   } else {

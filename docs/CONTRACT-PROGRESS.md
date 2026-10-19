@@ -2,7 +2,7 @@
 
 Adds migration progress, adoption, and per-file ownership to the report. All new fields are optional or additive, and `ReportSnapshot.schemaVersion` stays `2`. The dashboard must keep rendering snapshots that lack these fields.
 
-## Config (`legacy.json`, per group, optional)
+## Config (`migrations.json`, per group, optional)
 
 ```ts
 interface GroupPolicy {
@@ -90,12 +90,12 @@ export function buildReport(config: LegacyConfig, sites: readonly ImportSite[], 
 
 - `report`:
   - Gains `--source-url <template>`, `--codeowners <path>` (default: auto-detect under `--root`; an explicit missing path exits 2), and `--no-codeowners`.
-  - `--history <path>` overrides `.legacy/history.jsonl` for both reading and `--append-history`.
+  - `--history <path>` overrides `.migrations/history.jsonl` for both reading and `--append-history`.
   - The depcruise prefilter for `report` includes every `new` package as well as `old`, so adoption isn't undercounted (`scanProject(..., { adoption: true })`). `check`, `scan` and `baseline` keep the `old`-only prefilter.
-- The depcruise reporter plugin's `LEGACY_RATCHET_REPORT` snapshot also counts adoption and auto-detects CODEOWNERS.
+- The depcruise reporter plugin's `MIGRATION_TRACKER_REPORT` snapshot also counts adoption and auto-detects CODEOWNERS.
 - `historyEntry()` includes `newTotals`.
 - `check` output is unchanged.
 
 ## Action (`action.yml`)
 
-- New input `report-args`: extra arguments for `legacy report`, split on whitespace, used only when `report-path` is set.
+- New input `report-args`: extra arguments for `migration-tracker report`, split on whitespace, used only when `report-path` is set.

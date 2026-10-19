@@ -8,7 +8,7 @@ import {
   type Baseline,
   type LegacyConfig,
   type ValidationIssue,
-} from '@legacy-ratchet/core';
+} from '@migration-tracker/core';
 
 export interface RuleOptions {
   configPath?: string;
@@ -62,7 +62,7 @@ function isFile(file: string): boolean {
   }
 }
 
-/** Nearest directory at or above `startDir` containing `legacy.json`. */
+/** Nearest directory at or above `startDir` containing `migrations.json`. */
 export function findRoot(startDir: string): string | undefined {
   let dir = path.resolve(startDir);
   for (;;) {
@@ -75,9 +75,9 @@ export function findRoot(startDir: string): string | undefined {
 
 /**
  * Resolves root and config path for a linted file:
- * - `root` option (relative to `cwd`): config = `configPath` relative to root, default `legacy.json`.
+ * - `root` option (relative to `cwd`): config = `configPath` relative to root, default `migrations.json`.
  * - else `configPath` option (relative to `cwd`): root = the config file's directory.
- * - else walk up from the file to the nearest `legacy.json`.
+ * - else walk up from the file to the nearest `migrations.json`.
  */
 export function resolveLocation(
   filename: string,
@@ -107,7 +107,7 @@ function readBaseline(text: string): BaselineRead {
 }
 
 /**
- * Loads config + baseline for the file. Undefined means "no legacy.json":
+ * Loads config + baseline for the file. Undefined means "no migrations.json":
  * the rule is a no-op. A missing baseline yields `baseline: undefined`.
  */
 export function loadProject(filename: string, cwd: string, options: RuleOptions): ProjectState | undefined {

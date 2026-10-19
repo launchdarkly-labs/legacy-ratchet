@@ -1,4 +1,4 @@
-import type { InlineSuppression } from '@legacy-ratchet/core';
+import type { InlineSuppression } from '@migration-tracker/core';
 import ts from 'typescript';
 
 export type DirectiveKind = 'next-line' | 'line';
@@ -12,7 +12,7 @@ export interface Directive {
   suppression: InlineSuppression;
 }
 
-const DIRECTIVE_RE = /^legacy-ratchet-disable-(next-line|line)(?=$|\s|--)/;
+const DIRECTIVE_RE = /^migration-tracker-disable-(next-line|line)(?=$|\s|--)/;
 
 /** Extracts the comment body (without delimiters) from raw comment text. */
 function commentBody(raw: string, kind: ts.CommentKind): string {
@@ -30,7 +30,7 @@ function commentBody(raw: string, kind: ts.CommentKind): string {
 
 /**
  * Parses a single comment's text. Returns undefined if it is not a
- * legacy-ratchet directive.
+ * migration-tracker directive.
  */
 export function parseDirective(
   raw: string,
@@ -51,7 +51,7 @@ export function parseDirective(
 }
 
 /**
- * Collects every legacy-ratchet directive comment in the file by gathering
+ * Collects every migration-tracker directive comment in the file by gathering
  * the comment ranges in the trivia at every node boundary (TS splits trivia
  * into "trailing" up to the first newline and "leading" after it, so both are
  * read at each position). This only

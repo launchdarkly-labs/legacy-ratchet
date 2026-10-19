@@ -210,7 +210,7 @@ describe('extractWithDepcruise prefilter', () => {
 });
 
 describe('buildCruiseOptions', () => {
-  it('forces the options legacy-ratchet relies on', () => {
+  it('forces the options migration-tracker relies on', () => {
     const { options, warnings } = buildCruiseOptions(
       {
         tsPreCompilationDeps: false,
@@ -300,7 +300,7 @@ describe('buildCruiseOptions', () => {
 
   it('defaults the cache to a separate content-strategy folder under root', () => {
     expect(buildCruiseOptions(undefined, { root: '/repo' }).options.cache).toEqual({
-      folder: path.join('/repo', '.cache/legacy-ratchet/depcruise'),
+      folder: path.join('/repo', '.cache/migration-tracker/depcruise'),
       strategy: 'content',
     });
     expect(buildCruiseOptions(undefined, { root: '/repo', cache: '/tmp/c' }).options.cache).toEqual({
@@ -371,7 +371,7 @@ describe('extractWithDepcruise and process.cwd()', () => {
       process.chdir(root);
       const first = await extractWithDepcruise({ root });
       expect(first.warnings).toEqual([]);
-      const folder = path.join(root, '.cache/legacy-ratchet/depcruise');
+      const folder = path.join(root, '.cache/migration-tracker/depcruise');
       const cacheFile = readdirSync(folder).map((f) => path.join(folder, f))[0]!;
       const written = statSync(cacheFile).mtimeMs;
       const second = await extractWithDepcruise({ root });

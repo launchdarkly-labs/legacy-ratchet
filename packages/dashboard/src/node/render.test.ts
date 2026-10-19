@@ -4,10 +4,10 @@ import { parseSnapshotText } from '../data';
 import { sampleSnapshot } from '../sample-data';
 import { DATA_PLACEHOLDER, renderHtml } from './render.js';
 
-const template = `<!doctype html><html><head><script type="module">console.log(1)</script></head><body><div id="root"></div><script id="legacy-ratchet-data" type="application/json">${DATA_PLACEHOLDER}</script></body></html>`;
+const template = `<!doctype html><html><head><script type="module">console.log(1)</script></head><body><div id="root"></div><script id="migration-tracker-data" type="application/json">${DATA_PLACEHOLDER}</script></body></html>`;
 
 function dataOf(html: string): string {
-  const open = '<script id="legacy-ratchet-data" type="application/json">';
+  const open = '<script id="migration-tracker-data" type="application/json">';
   const start = html.indexOf(open) + open.length;
   const end = html.indexOf('</script>', start);
   return html.slice(start, end);

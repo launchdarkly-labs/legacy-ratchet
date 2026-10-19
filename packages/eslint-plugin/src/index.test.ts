@@ -24,12 +24,12 @@ function lint(root: string, rel: string, code: string, extra: Linter.Config[] = 
 
 describe('plugin object', () => {
   it('has meta, rules and a recommended config referencing the same plugin', () => {
-    expect(plugin.meta).toEqual({ name: 'eslint-plugin-legacy-ratchet', version: expect.any(String) });
+    expect(plugin.meta).toEqual({ name: 'eslint-plugin-migration-tracker', version: expect.any(String) });
     expect(plugin.rules).toBe(rules);
     expect(Object.keys(plugin.rules)).toEqual(['no-legacy-imports']);
-    expect(plugin.configs.recommended.name).toBe('legacy-ratchet/recommended');
-    expect(plugin.configs.recommended.plugins?.['legacy-ratchet']).toBe(plugin);
-    expect(plugin.configs.recommended.rules).toEqual({ 'legacy-ratchet/no-legacy-imports': 'error' });
+    expect(plugin.configs.recommended.name).toBe('migration-tracker/recommended');
+    expect(plugin.configs.recommended.plugins?.['migration-tracker']).toBe(plugin);
+    expect(plugin.configs.recommended.rules).toEqual({ 'migration-tracker/no-legacy-imports': 'error' });
     expect(rules['no-legacy-imports'].meta.docs?.url).toBeUndefined();
   });
 });
@@ -40,14 +40,14 @@ describe('Linter integration (flat config)', () => {
     const messages = lint(root, 'src/a.ts', "import { reduxForm } from 'redux-form';\nimport m from 'moment';\nimport r from 'request';");
     expect(messages.map((m) => [m.ruleId, m.severity, m.line, m.column, m.message])).toEqual([
       [
-        'legacy-ratchet/no-legacy-imports',
+        'migration-tracker/no-legacy-imports',
         2,
         1,
         27,
         'New import of "redux-form" is not allowed (forms). Use "react-hook-form" instead. See https://example.com/forms',
       ],
-      ['legacy-ratchet/no-legacy-imports', 2, 2, 15, 'New import of "moment" is not allowed (dates). Use "date-fns" or "luxon" instead.'],
-      ['legacy-ratchet/no-legacy-imports', 2, 3, 15, 'Import of "request" is banned (http).'],
+      ['migration-tracker/no-legacy-imports', 2, 2, 15, 'New import of "moment" is not allowed (dates). Use "date-fns" or "luxon" instead.'],
+      ['migration-tracker/no-legacy-imports', 2, 3, 15, 'Import of "request" is banned (http).'],
     ]);
   });
 
@@ -64,7 +64,7 @@ describe('Linter integration (flat config)', () => {
 
   it('severity follows the ESLint config', () => {
     const root = makeFixture({ allowed: [] });
-    const messages = lint(root, 'src/a.ts', "import 'redux-form';", [{ rules: { 'legacy-ratchet/no-legacy-imports': 'warn' } }]);
+    const messages = lint(root, 'src/a.ts', "import 'redux-form';", [{ rules: { 'migration-tracker/no-legacy-imports': 'warn' } }]);
     expect(messages.map((m) => m.severity)).toEqual([1]);
   });
 
@@ -73,14 +73,14 @@ describe('Linter integration (flat config)', () => {
     const messages = lint(root, 'src/a.ts', "import 'x';\nimport 'y';");
     expect(messages).toHaveLength(1);
     expect(messages[0]?.line).toBe(1);
-    expect(messages[0]?.message).toMatch(/^legacy-ratchet: invalid legacy\.json: groups/);
+    expect(messages[0]?.message).toMatch(/^migration-tracker: invalid migrations\.json: groups/);
   });
 
   it('picks up config and baseline changes (mtime cache)', () => {
     const root = makeFixture({ allowed: [] });
     const code = "import { reduxForm } from 'redux-form';";
     expect(lint(root, 'src/a.ts', code)).toHaveLength(1);
-    const baselinePath = path.join(root, '.legacy/baseline.json');
+    const baselinePath = path.join(root, '.migrations/baseline.json');
     writeFileSync(
       baselinePath,
       JSON.stringify({
@@ -95,7 +95,7 @@ describe('Linter integration (flat config)', () => {
     utimesSync(baselinePath, future, future);
     expect(lint(root, 'src/a.ts', code)).toEqual([]);
 
-    const configPath = path.join(root, 'legacy.json');
+    const configPath = path.join(root, 'migrations.json');
     writeFileSync(configPath, JSON.stringify({ ...CONFIG, groups: { ...CONFIG.groups, forms: { ...CONFIG.groups.forms, enforcement: { mode: 'ban' } } } }));
     utimesSync(configPath, future, future);
     expect(lint(root, 'src/a.ts', code).map((m) => m.message)).toEqual([

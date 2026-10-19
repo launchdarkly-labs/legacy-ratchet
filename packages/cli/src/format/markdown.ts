@@ -13,7 +13,7 @@ function link(filePath: string, line?: number): string {
 
 export function formatCheckMarkdown(outcome: CheckOutcome): string {
   const { result } = outcome;
-  const out: string[] = ['## legacy-ratchet', ''];
+  const out: string[] = ['## migration-tracker', ''];
   const n = result.violations.length;
   out.push(outcome.failed ? `**✖ Check failed.** ${summaryLine(outcome)}` : `**✔ Check passed.** ${summaryLine(outcome)}`);
   if (outcome.changed) out.push('', `_Checked ${plural(outcome.changed.files.length, 'changed file')} since ${code(outcome.changed.ref)}._`);
@@ -48,7 +48,7 @@ export function formatCheckMarkdown(outcome: CheckOutcome): string {
   if (result.retired.length > 0) {
     out.push(
       '',
-      `🎉 ${plural(result.retired.length, 'legacy site')} retired. Run ${code('legacy baseline update')} and commit ${code('.legacy/baseline.json')} to lock in the progress.`,
+      `🎉 ${plural(result.retired.length, 'legacy site')} retired. Run ${code('migration-tracker baseline update')} and commit ${code('.migrations/baseline.json')} to lock in the progress.`,
     );
   }
   return `${out.join('\n')}\n`;

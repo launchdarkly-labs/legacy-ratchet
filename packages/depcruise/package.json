@@ -1,5 +1,5 @@
 {
-  "name": "@legacy-ratchet/depcruise",
+  "name": "@migration-tracker/depcruise",
   "version": "0.2.0",
   "type": "module",
   "main": "./dist/index.js",
@@ -12,8 +12,8 @@
   "engines": { "node": "^20.12 || ^22 || >=24" },
   "scripts": { "build": "tsc -b" },
   "dependencies": {
-    "@legacy-ratchet/core": "workspace:*",
-    "@legacy-ratchet/scanner": "workspace:*",
+    "@migration-tracker/core": "workspace:*",
+    "@migration-tracker/scanner": "workspace:*",
     "dependency-cruiser": "^17.3.2",
     "typescript": "~5.9.0"
   },

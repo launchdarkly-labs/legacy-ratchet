@@ -2,9 +2,9 @@ import { mkdirSync, mkdtempSync, readFileSync, realpathSync, rmSync, writeFileSy
 import { tmpdir } from 'node:os';
 import nodePath from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { collectSites, parseConfig } from '@legacy-ratchet/core';
-import type { LegacyConfig } from '@legacy-ratchet/core';
-import { scanFiles } from '@legacy-ratchet/scanner';
+import { collectSites, parseConfig } from '@migration-tracker/core';
+import type { LegacyConfig } from '@migration-tracker/core';
+import { scanFiles } from '@migration-tracker/scanner';
 import { afterAll, describe, expect, it } from 'vitest';
 import { extractWithDepcruise } from './extract.js';
 
@@ -66,13 +66,13 @@ const cases: ParityCase[] = [
   {
     name: 'examples/vite-react',
     root: at('../../../examples/vite-react'),
-    config: loadConfig(at('../../../examples/vite-react/legacy.json')),
+    config: loadConfig(at('../../../examples/vite-react/migrations.json')),
     allowlist: [],
   },
   {
     name: 'examples/pnpm-monorepo',
     root: at('../../../examples/pnpm-monorepo'),
-    config: loadConfig(at('../../../examples/pnpm-monorepo/legacy.json')),
+    config: loadConfig(at('../../../examples/pnpm-monorepo/migrations.json')),
     allowlist: [],
   },
   {

@@ -1,4 +1,4 @@
-import type { BaselineRevision, ImportSite } from '@legacy-ratchet/core';
+import type { BaselineRevision, ImportSite } from '@migration-tracker/core';
 
 import { type DashboardGroup, directoryOf, ownerOf, type SeriesSnapshot, siteOwners } from './model';
 

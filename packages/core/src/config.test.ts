@@ -46,7 +46,7 @@ describe('validateConfig', () => {
           enforcement: { mode: 'ban', scope: 'imports', severity: 'warn' },
         },
       },
-      { $schema: './node_modules/@legacy-ratchet/core/schema.json', ignore: ['**/*.stories.tsx'], exceptions: [validException] },
+      { $schema: './node_modules/@migration-tracker/core/schema.json', ignore: ['**/*.stories.tsx'], exceptions: [validException] },
     );
     const result = validateConfig(input);
     expect(result.ok).toBe(true);

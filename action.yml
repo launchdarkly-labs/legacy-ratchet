@@ -1,35 +1,35 @@
-name: legacy-ratchet
-description: Fail pull requests that add new imports of deprecated packages listed in legacy.json.
-author: legacy-ratchet contributors
+name: migration-tracker
+description: Fail pull requests that add new imports of deprecated packages listed in migrations.json.
+author: migration-tracker contributors
 branding:
   icon: trending-down
   color: orange
 
 inputs:
   working-directory:
-    description: Directory that contains legacy.json and .legacy/baseline.json.
+    description: Directory that contains migrations.json and .migrations/baseline.json.
     required: false
     default: .
   base-ref:
     description: >-
-      Git ref or SHA to compare the baseline against (passed to `legacy check --base`).
+      Git ref or SHA to compare the baseline against (passed to `migration-tracker check --base`).
       Fetched automatically if it is missing from a shallow checkout.
       When empty (for example on push events), baseline verification is skipped.
     required: false
     default: ${{ github.event.pull_request.base.sha }}
   args:
-    description: Extra arguments appended to `legacy check`, split on whitespace.
+    description: Extra arguments appended to `migration-tracker check`, split on whitespace.
     required: false
     default: ""
   report-path:
     description: >-
       When set, also write the HTML dashboard to this path (relative to working-directory)
-      with `legacy report --format html`. Runs even when the check fails.
+      with `migration-tracker report --format html`. Runs even when the check fails.
     required: false
     default: ""
   report-args:
     description: >-
-      Extra arguments appended to `legacy report`, split on whitespace.
+      Extra arguments appended to `migration-tracker report`, split on whitespace.
       Only used when report-path is set.
     required: false
     default: ""
@@ -37,48 +37,48 @@ inputs:
 runs:
   using: composite
   steps:
-    - name: Build legacy-ratchet
+    - name: Build migration-tracker
       shell: bash
       working-directory: ${{ github.action_path }}
       run: |
         set -euo pipefail
         npx --yes pnpm@12.6.0 install --frozen-lockfile
         npx --yes pnpm@12.6.0 build
-    - name: legacy check
+    - name: migration-tracker check
       shell: bash
       working-directory: ${{ inputs.working-directory }}
       env:
-        LEGACY_RATCHET_BIN: ${{ github.action_path }}/packages/cli/dist/bin.js
-        LEGACY_RATCHET_BASE_REF: ${{ inputs.base-ref }}
-        LEGACY_RATCHET_ARGS: ${{ inputs.args }}
+        MIGRATION_TRACKER_BIN: ${{ github.action_path }}/packages/cli/dist/bin.js
+        MIGRATION_TRACKER_BASE_REF: ${{ inputs.base-ref }}
+        MIGRATION_TRACKER_ARGS: ${{ inputs.args }}
       run: |
         set -euo pipefail
-        cmd=(node "$LEGACY_RATCHET_BIN" check --format github)
-        if [ -n "$LEGACY_RATCHET_BASE_REF" ]; then
-          if ! git cat-file -e "$LEGACY_RATCHET_BASE_REF^{commit}" 2>/dev/null; then
-            git fetch --no-tags --depth=1 origin "$LEGACY_RATCHET_BASE_REF"
+        cmd=(node "$MIGRATION_TRACKER_BIN" check --format github)
+        if [ -n "$MIGRATION_TRACKER_BASE_REF" ]; then
+          if ! git cat-file -e "$MIGRATION_TRACKER_BASE_REF^{commit}" 2>/dev/null; then
+            git fetch --no-tags --depth=1 origin "$MIGRATION_TRACKER_BASE_REF"
           fi
-          cmd+=(--base "$LEGACY_RATCHET_BASE_REF")
+          cmd+=(--base "$MIGRATION_TRACKER_BASE_REF")
         else
-          echo "::notice title=legacy-ratchet::No base-ref given; skipping baseline verification."
+          echo "::notice title=migration-tracker::No base-ref given; skipping baseline verification."
         fi
         extra=()
-        if [ -n "$LEGACY_RATCHET_ARGS" ]; then
-          read -r -a extra <<< "$LEGACY_RATCHET_ARGS"
+        if [ -n "$MIGRATION_TRACKER_ARGS" ]; then
+          read -r -a extra <<< "$MIGRATION_TRACKER_ARGS"
         fi
         "${cmd[@]}" ${extra[@]+"${extra[@]}"}
-    - name: legacy report
+    - name: migration-tracker report
       if: ${{ always() && inputs.report-path != '' }}
       shell: bash
       working-directory: ${{ inputs.working-directory }}
       env:
-        LEGACY_RATCHET_BIN: ${{ github.action_path }}/packages/cli/dist/bin.js
-        LEGACY_RATCHET_REPORT_PATH: ${{ inputs.report-path }}
-        LEGACY_RATCHET_REPORT_ARGS: ${{ inputs.report-args }}
+        MIGRATION_TRACKER_BIN: ${{ github.action_path }}/packages/cli/dist/bin.js
+        MIGRATION_TRACKER_REPORT_PATH: ${{ inputs.report-path }}
+        MIGRATION_TRACKER_REPORT_ARGS: ${{ inputs.report-args }}
       run: |
         set -euo pipefail
         extra=()
-        if [ -n "$LEGACY_RATCHET_REPORT_ARGS" ]; then
-          read -r -a extra <<< "$LEGACY_RATCHET_REPORT_ARGS"
+        if [ -n "$MIGRATION_TRACKER_REPORT_ARGS" ]; then
+          read -r -a extra <<< "$MIGRATION_TRACKER_REPORT_ARGS"
         fi
-        node "$LEGACY_RATCHET_BIN" report --format html --output "$LEGACY_RATCHET_REPORT_PATH" ${extra[@]+"${extra[@]}"}
+        node "$MIGRATION_TRACKER_BIN" report --format html --output "$MIGRATION_TRACKER_REPORT_PATH" ${extra[@]+"${extra[@]}"}

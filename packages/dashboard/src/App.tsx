@@ -1,4 +1,4 @@
-import type { ImportSite } from '@legacy-ratchet/core';
+import type { ImportSite } from '@migration-tracker/core';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 
 import { EmptyState } from './components/EmptyState';
@@ -134,7 +134,7 @@ export function Dashboard({ snapshot, sample = false }: { snapshot: SeriesSnapsh
     <div className="app">
       {sample && (
         <p className="banner" role="note">
-          Showing sample data (development mode). Run <code>legacy report --format html</code> to see a real report.
+          Showing sample data (development mode). Run <code>migration-tracker report --format html</code> to see a real report.
         </p>
       )}
       {content}
