@@ -83,7 +83,7 @@ git add .legacy/baseline.json
 
 `legacy baseline verify --base <ref>` and `legacy check --base <ref>` understand the upgrade, so the pull request that migrates the baseline passes when the base ref still has a version 1 baseline.
 
-Counts usually drop when you migrate, because several imports of one specifier in a file become one site. The dashboard marks the first history entry with the new counting so the drop is not mistaken for progress. See [dashboard.md](dashboard.md#history-and-trends).
+Counts usually drop when you migrate, because several imports of one specifier in a file become one site.
 
 ## Baseline safety
 

@@ -231,3 +231,25 @@ describe('configDigest', () => {
     expect(configDigest(a)).toMatch(/^sha256:[0-9a-f]{64}$/);
   });
 });
+
+describe('progress fields', () => {
+  const group = (extra: Record<string, unknown>) => base({ forms: { old: ['redux-form'], ...extra } });
+
+  it('keeps a valid start', () => {
+    const result = validateConfig(group({ start: 120 }));
+    expect(result.ok && result.config.groups.forms).toMatchObject({ start: 120 });
+    expect(validateConfig(group({ start: 0 })).ok).toBe(true);
+    const plain = validateConfig(group({}));
+    expect(plain.ok && plain.config.groups.forms).not.toHaveProperty('start');
+  });
+
+  it('rejects target (unknown key)', () => {
+    expect(issuesOf(group({ target: '2027-06-30' }))).toEqual([{ path: 'groups.forms.target', message: 'Unknown key "target"' }]);
+  });
+
+  it('start must be an integer of at least 0', () => {
+    expect(issuesOf(group({ start: -1 }))).toEqual([{ path: 'groups.forms.start', message: 'Must be at least 0' }]);
+    expect(issuesOf(group({ start: 1.5 }))).toEqual([{ path: 'groups.forms.start', message: 'Must be an integer' }]);
+    expect(issuesOf(group({ start: '10' })).map((i) => i.path)).toEqual(['groups.forms.start']);
+  });
+});

@@ -15,6 +15,7 @@ export interface GroupPolicy {
   new: string[];
   enforcement: Enforcement;
   docs?: string;
+  start?: number;
 }
 
 export interface PolicyException {
@@ -67,6 +68,7 @@ export interface ImportSite {
   line?: number;
   column?: number;
   suppression?: InlineSuppression;
+  owners?: string[];
 }
 
 export interface BaselineRevision {
@@ -138,6 +140,12 @@ export type ValidationResult =
   | { ok: true; config: LegacyConfig; issues: [] }
   | { ok: false; issues: ValidationIssue[] };
 
+export interface AdoptionCount {
+  groupId: string;
+  filePath: string;
+  packageName: string;
+}
+
 export interface GroupReport {
   id: string;
   description?: string;
@@ -150,6 +158,21 @@ export interface GroupReport {
   files: number;
   byPackage: Record<string, number>;
   topFiles: Array<{ filePath: string; count: number }>;
+  start: number;
+  completePct: number;
+  newSites: number;
+  adoptionPct: number | null;
+  byOwner: Record<string, number>;
+  byDirectory: Record<string, number>;
+  startHere: Array<{ filePath: string; count: number }>;
+}
+
+export interface ReportTotals {
+  sites: number;
+  start: number;
+  completePct: number;
+  newSites: number;
+  adoptionPct: number | null;
 }
 
 export interface HistoryEntry {
@@ -157,6 +180,7 @@ export interface HistoryEntry {
   identityVersion?: 2;
   revision?: BaselineRevision;
   totals: Record<string, number>;
+  newTotals?: Record<string, number>;
 }
 
 export interface ReportSnapshot {
@@ -167,4 +191,6 @@ export interface ReportSnapshot {
   groups: GroupReport[];
   sites: ImportSite[];
   history: HistoryEntry[];
+  totals?: ReportTotals;
+  sourceUrlTemplate?: string;
 }

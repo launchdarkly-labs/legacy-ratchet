@@ -1,6 +1,6 @@
 import type { ImportKind, ImportSite } from '@legacy-ratchet/core';
 
-import { type SeriesSnapshot, siteKindOf } from './model';
+import { type DashboardGroup, type DashboardTotals, type SeriesSnapshot, siteKindOf } from './model';
 
 export const DATA_ELEMENT_ID = 'legacy-ratchet-data';
 
@@ -21,15 +21,81 @@ function isImportKind(value: unknown): value is ImportKind {
   return typeof value === 'string' && (IMPORT_KINDS as readonly string[]).includes(value);
 }
 
+function isFiniteNumber(value: unknown): value is number {
+  return typeof value === 'number' && Number.isFinite(value);
+}
+
+function countRecord(value: unknown): Record<string, number> | undefined {
+  if (!isRecord(value)) return undefined;
+  const out: Record<string, number> = {};
+  for (const [key, count] of Object.entries(value)) if (isFiniteNumber(count)) out[key] = count;
+  return out;
+}
+
+function fileCounts(value: unknown): Array<{ filePath: string; count: number }> | undefined {
+  if (!Array.isArray(value)) return undefined;
+  return value.filter(
+    (f): f is { filePath: string; count: number } =>
+      isRecord(f) && typeof f.filePath === 'string' && isFiniteNumber(f.count),
+  );
+}
+
 export function normalizeSite(input: Record<string, unknown>): ImportSite {
-  const { occurrence: _occurrence, ...rest } = input;
+  const { occurrence: _occurrence, owners, ...rest } = input;
   const declared = isImportKind(rest.importKind) ? rest.importKind : 'import';
   const kinds = Array.isArray(rest.kinds) ? rest.kinds.filter(isImportKind) : [];
+  const ownerList = Array.isArray(owners) ? owners.filter((o): o is string => typeof o === 'string') : [];
   return {
     ...(rest as unknown as ImportSite),
     importKind: siteKindOf(declared),
     kinds: kinds.length > 0 ? kinds : [declared],
+    ...(ownerList.length > 0 ? { owners: ownerList } : {}),
   };
+}
+
+export function normalizeGroup(input: Record<string, unknown>): DashboardGroup {
+  const {
+    start,
+    completePct,
+    newSites,
+    adoptionPct,
+    byOwner,
+    byDirectory,
+    startHere,
+    forecast: _forecast,
+    target: _target,
+    ...rest
+  } = input;
+  const g = rest as unknown as DashboardGroup;
+  const owners = countRecord(byOwner);
+  const directories = countRecord(byDirectory);
+  const easy = fileCounts(startHere);
+  return {
+    ...g,
+    old: Array.isArray(g.old) ? g.old : [],
+    new: Array.isArray(g.new) ? g.new : [],
+    byPackage: countRecord(g.byPackage) ?? {},
+    topFiles: fileCounts(g.topFiles) ?? [],
+    sites: isFiniteNumber(g.sites) ? g.sites : 0,
+    files: isFiniteNumber(g.files) ? g.files : 0,
+    ...(isFiniteNumber(start) ? { start } : {}),
+    ...(isFiniteNumber(completePct) ? { completePct } : {}),
+    ...(isFiniteNumber(newSites) ? { newSites } : {}),
+    ...(isFiniteNumber(adoptionPct) || adoptionPct === null ? { adoptionPct } : {}),
+    ...(owners ? { byOwner: owners } : {}),
+    ...(directories ? { byDirectory: directories } : {}),
+    ...(easy ? { startHere: easy } : {}),
+  };
+}
+
+function normalizeTotals(input: unknown): DashboardTotals | undefined {
+  if (!isRecord(input) || !isFiniteNumber(input.sites)) return undefined;
+  const totals: DashboardTotals = { sites: input.sites };
+  if (isFiniteNumber(input.start)) totals.start = input.start;
+  if (isFiniteNumber(input.completePct)) totals.completePct = input.completePct;
+  if (isFiniteNumber(input.newSites)) totals.newSites = input.newSites;
+  if (isFiniteNumber(input.adoptionPct) || input.adoptionPct === null) totals.adoptionPct = input.adoptionPct;
+  return totals;
 }
 
 export function normalizeSnapshot(input: unknown): SeriesSnapshot {
@@ -40,19 +106,15 @@ export function normalizeSnapshot(input: unknown): SeriesSnapshot {
   if (!Array.isArray(input.groups)) throw new Error('Report data has no "groups" array.');
   if (typeof input.generatedAt !== 'string') throw new Error('Report data has no "generatedAt" timestamp.');
   const upgraded = input.schemaVersion === 1;
-  const snapshot = input as unknown as SeriesSnapshot;
-  const groups = snapshot.groups.map((g) => ({
-    ...g,
-    old: Array.isArray(g.old) ? g.old : [],
-    new: Array.isArray(g.new) ? g.new : [],
-    byPackage: isRecord(g.byPackage) ? g.byPackage : {},
-    topFiles: Array.isArray(g.topFiles) ? g.topFiles : [],
-    sites: typeof g.sites === 'number' ? g.sites : 0,
-    files: typeof g.files === 'number' ? g.files : 0,
-  }));
+  const { totals: rawTotals, sourceUrlTemplate, ...rest } = input;
+  const snapshot = rest as unknown as SeriesSnapshot;
+  const groups = (input.groups as unknown[]).filter(isRecord).map((g) => normalizeGroup(g));
+  const totals = normalizeTotals(rawTotals);
   return {
     ...snapshot,
     schemaVersion: 2,
+    ...(totals ? { totals } : {}),
+    ...(typeof sourceUrlTemplate === 'string' && sourceUrlTemplate.trim() !== '' ? { sourceUrlTemplate } : {}),
     ...(upgraded ? { upgradedFrom: 1 as const } : {}),
     groups,
     sites: Array.isArray(snapshot.sites)

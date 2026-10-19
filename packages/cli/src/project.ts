@@ -1,4 +1,13 @@
-import { collectSites, enrichSites, type ImportSite, type LegacyConfig } from '@legacy-ratchet/core';
+import {
+  collectAdoption,
+  collectSites,
+  enrichSites,
+  newPackages,
+  type AdoptionCount,
+  type ImportSite,
+  type LegacyConfig,
+  type RawImport,
+} from '@legacy-ratchet/core';
 import { engineVersion, extractWithDepcruise, type ExtractOptions, type ExtractResult } from '@legacy-ratchet/depcruise';
 import { listFiles, scanFiles, scanFilesAt, SCANNER_VERSION, type ScanError } from '@legacy-ratchet/scanner';
 import { CliError } from './errors.js';
@@ -18,6 +27,7 @@ export interface ProjectScan {
   engine: Engine;
   engineVersion?: string;
   changed?: { ref: string; files: string[] };
+  adoption?: AdoptionCount[];
 }
 
 export interface EngineOptions {
@@ -32,6 +42,7 @@ export interface ScanProjectOptions extends EngineOptions {
   changedSince?: string;
   ignore?: readonly string[];
   extract?: (opts: ExtractOptions) => Promise<ExtractResult>;
+  adoption?: boolean;
 }
 
 export { unlocatedWarning } from './format/types.js';
@@ -47,6 +58,15 @@ export function legacyPackages(config: LegacyConfig): string[] {
   return [...names].sort();
 }
 
+export function prefilterPackages(config: LegacyConfig, adoption: boolean): string[] {
+  if (!adoption) return legacyPackages(config);
+  return [...new Set([...legacyPackages(config), ...newPackages(config)])].sort();
+}
+
+function adoptionOf(config: LegacyConfig, imports: readonly RawImport[], opts: ScanProjectOptions): { adoption?: AdoptionCount[] } {
+  return opts.adoption ? { adoption: collectAdoption(config, imports) } : {};
+}
+
 export async function scanProject(ctx: Context, config: LegacyConfig, opts: ScanProjectOptions = {}): Promise<ProjectScan> {
   const ignore = [...(config.ignore ?? []), ...(opts.ignore ?? [])];
   let files: string[] | undefined;
@@ -58,7 +78,7 @@ export async function scanProject(ctx: Context, config: LegacyConfig, opts: Scan
   }
   const scan =
     (opts.engine ?? DEFAULT_ENGINE) === 'scanner'
-      ? await scanWithScanner(ctx, config, ignore, files)
+      ? await scanWithScanner(ctx, config, ignore, files, opts)
       : await scanWithDepcruise(ctx, config, ignore, files, opts);
   return changed ? { ...scan, changed } : scan;
 }
@@ -68,6 +88,7 @@ async function scanWithScanner(
   config: LegacyConfig,
   ignore: readonly string[],
   files: string[] | undefined,
+  opts: ScanProjectOptions,
 ): Promise<ProjectScan> {
   const result =
     files === undefined
@@ -82,6 +103,7 @@ async function scanWithScanner(
     warnings: [],
     unlocated: [],
     engine: 'scanner',
+    ...adoptionOf(config, result.imports, opts),
   };
 }
 
@@ -93,9 +115,18 @@ async function scanWithDepcruise(
   opts: ScanProjectOptions,
 ): Promise<ProjectScan> {
   const listed = files ?? (await listFiles({ root: ctx.root, ignore }));
-  const prefilter = opts.prefilter === false ? undefined : legacyPackages(config);
+  const prefilter = opts.prefilter === false ? undefined : prefilterPackages(config, opts.adoption === true);
   if (listed.length === 0 || prefilter?.length === 0) {
-    return { sites: [], fileCount: listed.length, errors: [], warnings: [], unlocated: [], engine: 'depcruise', engineVersion: engineVersion() };
+    return {
+      sites: [],
+      fileCount: listed.length,
+      errors: [],
+      warnings: [],
+      unlocated: [],
+      engine: 'depcruise',
+      engineVersion: engineVersion(),
+      ...adoptionOf(config, [], opts),
+    };
   }
   const extractOpts: ExtractOptions = { root: ctx.root, ignore };
   if (files !== undefined) extractOpts.files = files;
@@ -124,6 +155,7 @@ async function scanWithDepcruise(
     unlocated: unlocated.filter((s) => !unreadable.has(s.filePath)),
     engine: 'depcruise',
     engineVersion: extracted.engineVersion,
+    ...adoptionOf(config, extracted.imports, opts),
   };
 }
 

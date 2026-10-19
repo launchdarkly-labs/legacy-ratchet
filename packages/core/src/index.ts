@@ -15,5 +15,9 @@ export {
 export type { BaselineMeta } from './baseline.js';
 export { evaluate } from './evaluate.js';
 export { buildReport, historyEntry } from './report.js';
+export type { BuildReportOptions } from './report.js';
+export { collectAdoption, newPackages } from './adoption.js';
+export { assignOwners, CODEOWNERS_LOCATIONS, codeownersPatternRegex, ownersFor, parseCodeowners } from './codeowners.js';
+export type { CodeownersRule } from './codeowners.js';
 export { formatViolation } from './format.js';
 export { isIgnoredPath } from './ignore.js';

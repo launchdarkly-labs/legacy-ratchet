@@ -1,11 +1,20 @@
 import path from 'node:path';
-import { buildReport, historyEntry } from '@legacy-ratchet/core';
+import { assignOwners, buildReport, historyEntry } from '@legacy-ratchet/core';
 import { renderDashboard } from '../dashboard.js';
 import { reportEngineWarnings, resolveEngineOptions, type EngineFlags } from '../engine-options.js';
 import { CliError, withErrors } from '../errors.js';
 import { revision } from '../git.js';
 import type { Io } from '../io.js';
-import { appendLine, createContext, displayPath, historyFile, loadConfig, loadHistory, type GlobalOptions } from '../load.js';
+import {
+  appendLine,
+  createContext,
+  displayPath,
+  historyFile,
+  loadCodeowners,
+  loadConfig,
+  loadHistory,
+  type GlobalOptions,
+} from '../load.js';
 import { emit, status, warn } from '../output.js';
 import { scanProject } from '../project.js';
 
@@ -16,6 +25,9 @@ export interface ReportOptions extends GlobalOptions, EngineFlags {
   output?: string;
   appendHistory?: boolean;
   template?: string;
+  history?: string;
+  sourceUrl?: string;
+  codeowners?: string | false;
 }
 
 export const reportCommand = withErrors(async (options: ReportOptions, io: Io): Promise<number> => {
@@ -23,12 +35,20 @@ export const reportCommand = withErrors(async (options: ReportOptions, io: Io): 
   if (format !== 'html' && format !== 'json') throw new CliError(`Unknown format "${format}" (expected html or json)`);
   const ctx = createContext(options, io);
   const config = await loadConfig(ctx);
-  const history = await loadHistory(ctx, (m) => warn(ctx, m));
-  const scan = await scanProject(ctx, config, resolveEngineOptions(ctx, options));
+  const historyPath = options.history !== undefined ? path.resolve(io.cwd, options.history) : historyFile(ctx);
+  const history = await loadHistory(ctx, (m) => warn(ctx, m), historyPath);
+  const codeowners = await loadCodeowners(ctx, options.codeowners);
+  const scan = await scanProject(ctx, config, { ...resolveEngineOptions(ctx, options), adoption: true });
   reportEngineWarnings(ctx, scan);
   for (const e of scan.errors) warn(ctx, `${e.filePath}: could not scan file: ${e.message}`);
   const rev = await revision(ctx.root);
-  const report = buildReport(config, scan.sites, { history, ...(rev ? { revision: rev } : {}) });
+  const sites = codeowners ? assignOwners(scan.sites, codeowners.rules) : scan.sites;
+  const report = buildReport(config, sites, {
+    history,
+    adoption: scan.adoption ?? [],
+    ...(rev ? { revision: rev } : {}),
+    ...(options.sourceUrl ? { sourceUrlTemplate: options.sourceUrl } : {}),
+  });
 
   const entry = historyEntry(report);
   if (options.appendHistory) report.history = [...history, entry];
@@ -41,8 +61,8 @@ export const reportCommand = withErrors(async (options: ReportOptions, io: Io): 
   }
 
   if (options.appendHistory) {
-    await appendLine(historyFile(ctx), JSON.stringify(entry));
-    status(ctx, `Appended history entry to ${displayPath(ctx, historyFile(ctx))}`);
+    await appendLine(historyPath, JSON.stringify(entry));
+    status(ctx, `Appended history entry to ${displayPath(ctx, historyPath)}`);
   }
   return 0;
 });

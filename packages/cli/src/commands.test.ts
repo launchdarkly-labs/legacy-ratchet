@@ -528,6 +528,85 @@ describe('report', () => {
     expect(JSON.parse(lines.at(-2)!).revision.commit).toMatch(/^[0-9a-f]{40}$/);
   });
 
+  it('reports adoption, CODEOWNERS owners and the source url template in JSON', async () => {
+    for (const engine of ['depcruise', 'scanner']) {
+      setupBaselined();
+      repo.write('src/b.ts', "import { useForm } from 'react-hook-form';\nimport dayjs from 'dayjs';\nimport { format } from 'date-fns';\n");
+      repo.write('lib/c.ts', "import { reduxForm } from 'redux-form';\n");
+      repo.write('.github/CODEOWNERS', '# owners\n*.ts @acme/all\n/src/ @acme/web # web team\n/lib/c.ts\n');
+      const template = 'https://example.com/acme/repo/blob/{sha}/{path}#L{line}';
+      const r = await repo.run(['report', '--format', 'json', '--engine', engine, '--source-url', template]);
+      expect(r.code).toBe(0);
+      const snapshot = JSON.parse(r.stdout);
+      expect(snapshot.sourceUrlTemplate).toBe(template);
+      expect(snapshot.totals).toEqual({ sites: 3, start: 3, completePct: 0, newSites: 3, adoptionPct: 50 });
+      const forms = snapshot.groups.find((g: { id: string }) => g.id === 'forms');
+      const dates = snapshot.groups.find((g: { id: string }) => g.id === 'dates');
+      expect(forms).toMatchObject({
+        sites: 2,
+        newSites: 1,
+        adoptionPct: 33.3,
+        byOwner: { '@acme/web': 1, Unowned: 1 },
+        byDirectory: { lib: 1, src: 1 },
+        startHere: [
+          { filePath: 'lib/c.ts', count: 1 },
+          { filePath: 'src/a.ts', count: 1 },
+        ],
+      });
+      expect(dates).toMatchObject({ sites: 1, newSites: 2, adoptionPct: 66.7, byOwner: { '@acme/web': 1 } });
+      expect(snapshot.sites.map((s: { id: string; owners?: string[] }) => [s.id, s.owners ?? null])).toEqual([
+        ['dates|src/a.ts|import|moment', ['@acme/web']],
+        ['forms|lib/c.ts|import|redux-form', null],
+        ['forms|src/a.ts|import|redux-form', ['@acme/web']],
+      ]);
+      repo.cleanup();
+      repo = new TempRepo();
+    }
+  });
+
+  it('reads CODEOWNERS from an explicit path, can skip it, and fails on a missing explicit path', async () => {
+    setupBaselined();
+    repo.write('CODEOWNERS', '* @acme/root\n');
+    repo.write('owners/TEAM', '/src/ @acme/explicit\n');
+    const byOwner = (stdout: string) => JSON.parse(stdout).groups[0].byOwner;
+    const auto = await repo.run(['report', '--format', 'json']);
+    expect(byOwner(auto.stdout)).toEqual({ '@acme/root': 1 });
+    const explicit = await repo.run(['report', '--format', 'json', '--codeowners', 'owners/TEAM']);
+    expect(byOwner(explicit.stdout)).toEqual({ '@acme/explicit': 1 });
+    const none = await repo.run(['report', '--format', 'json', '--no-codeowners']);
+    expect(byOwner(none.stdout)).toEqual({ Unowned: 1 });
+    expect(JSON.parse(none.stdout).sites[0]).not.toHaveProperty('owners');
+    const missing = await repo.run(['report', '--format', 'json', '--codeowners', 'nope/CODEOWNERS']);
+    expect(missing.code).toBe(2);
+    expect(missing.stderr).toContain('No CODEOWNERS file found at nope/CODEOWNERS');
+  });
+
+  it('works without any CODEOWNERS file', async () => {
+    setupBaselined();
+    const r = await repo.run(['report', '--format', 'json']);
+    expect(r.code).toBe(0);
+    expect(JSON.parse(r.stdout).groups[0].byOwner).toEqual({ Unowned: 1 });
+  });
+
+  it('reads and appends a --history file instead of .legacy/history.jsonl', async () => {
+    setupBaselined();
+    repo.write('.legacy/history.jsonl', `${JSON.stringify({ generatedAt: '2026-01-01T00:00:00.000Z', totals: { forms: 50 } })}\n`);
+    repo.write('data/h.jsonl', `${JSON.stringify({ generatedAt: '2026-01-01T00:00:00.000Z', totals: { forms: 4 } })}\n`);
+    repo.write('src/n.ts', "import { useForm } from 'react-hook-form';\n");
+    const r = await repo.run(['report', '--format', 'json', '--history', 'data/h.jsonl', '--append-history']);
+    expect(r.code).toBe(0);
+    expect(r.stderr).toContain('Appended history entry to data/h.jsonl');
+    const snapshot = JSON.parse(r.stdout);
+    expect(snapshot.groups[0]).toMatchObject({ id: 'forms', start: 4, sites: 1, completePct: 75 });
+    expect(snapshot.history).toHaveLength(2);
+    const lines = repo.read('data/h.jsonl').trim().split('\n');
+    expect(lines).toHaveLength(2);
+    const appended = JSON.parse(lines[1]!);
+    expect(appended.totals).toEqual({ forms: 1, dates: 1 });
+    expect(appended.newTotals).toEqual({ forms: 1, dates: 0 });
+    expect(repo.read('.legacy/history.jsonl').trim().split('\n')).toHaveLength(1);
+  });
+
   it('renders html with a provided template', async () => {
     setupBaselined();
     let stdout = '';

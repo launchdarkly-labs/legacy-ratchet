@@ -14,8 +14,7 @@ export function EmptyState({ message }: { message?: string }) {
         <code>legacy report --format html</code>
       </pre>
       <p className="muted">
-        This writes <code>legacy-report.html</code>. Add <code>--append-history</code> to record a data point for the
-        trend chart, and <code>--output &lt;file&gt;</code> to choose another file name.
+        This writes <code>legacy-report.html</code>. Add <code>--output &lt;file&gt;</code> to choose another file name.
       </p>
     </main>
   );

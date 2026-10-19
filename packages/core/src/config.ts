@@ -39,6 +39,11 @@ const groupSchema = z.strictObject({
   new: z.array(packageName).default([]),
   enforcement: enforcementSchema,
   docs: z.url({ error: 'Must be a URL' }).optional(),
+  start: z
+    .number({ error: 'Must be a number' })
+    .int({ error: 'Must be an integer' })
+    .min(0, { error: 'Must be at least 0' })
+    .optional(),
 });
 
 const exceptionSchema = z.strictObject({

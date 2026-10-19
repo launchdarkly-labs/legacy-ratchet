@@ -1,24 +1,7 @@
 import type { EnforcementMode } from '@legacy-ratchet/core';
+import type { ReactNode } from 'react';
 
-import { describeDelta, formatDelta } from '../model';
-
-export function Delta({ value }: { value: number | undefined }) {
-  if (value === undefined) {
-    return (
-      <span className="delta delta--none" title="No previous report to compare with">
-        <span aria-hidden="true">—</span>
-        <span className="visually-hidden">no previous report</span>
-      </span>
-    );
-  }
-  const tone = value < 0 ? 'down' : value > 0 ? 'up' : 'flat';
-  return (
-    <span className={`delta delta--${tone}`} title={describeDelta(value)}>
-      <span aria-hidden="true">{formatDelta(value)}</span>
-      <span className="visually-hidden">{describeDelta(value)}</span>
-    </span>
-  );
-}
+import { formatPct } from '../progress';
 
 const MODE_HINT: Record<EnforcementMode, string> = {
   report: 'Report only: sites are tracked but never fail checks',
@@ -70,5 +53,38 @@ export function ShareBar({ value, max, label }: { value: number; max: number; la
     <span className="bar" aria-hidden="true" title={label}>
       <span className="bar__fill" style={{ width: `${pct}%` }} />
     </span>
+  );
+}
+
+export interface ProgressBarProps {
+  value: number;
+  label: string;
+  title?: string;
+  size?: 'small' | 'large';
+}
+
+export function ProgressBar({ value, label, title, size = 'small' }: ProgressBarProps) {
+  const pct = Math.max(0, Math.min(100, value));
+  return (
+    <span
+      className={`progress progress--${size}`}
+      role="progressbar"
+      aria-label={label}
+      aria-valuemin={0}
+      aria-valuemax={100}
+      aria-valuenow={pct}
+      aria-valuetext={formatPct(pct)}
+      title={title}
+    >
+      <span className="progress__fill" style={{ width: `${pct}%` }} />
+    </span>
+  );
+}
+
+export function ExternalLink({ href, children }: { href: string; children: ReactNode }) {
+  return (
+    <a href={href} target="_blank" rel="noreferrer noopener">
+      {children}
+    </a>
   );
 }

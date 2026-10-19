@@ -83,3 +83,52 @@ describe('normalizeSnapshot v1 upgrade', () => {
   });
 });
 
+
+describe('normalizeSnapshot progress fields', () => {
+  it('keeps valid progress fields and drops malformed ones', () => {
+    const state = parseSnapshotText(
+      JSON.stringify({
+        schemaVersion: 2,
+        generatedAt: '2026-10-01T00:00:00Z',
+        totalSites: 2,
+        groups: [
+          {
+            id: 'a',
+            mode: 'report',
+            sites: 2,
+            start: 4,
+            completePct: 'nope',
+            adoptionPct: null,
+            byOwner: { '@x': 2, '@y': 'bad' },
+            byDirectory: 'bad',
+            startHere: [{ filePath: 'a.ts', count: 1 }, { filePath: 3 }],
+            forecast: { status: 'on-track' },
+          },
+        ],
+        sites: [{ id: 's', groupId: 'a', filePath: 'a.ts', importKind: 'import', owners: ['@x', 7] }],
+        totals: { sites: 2, start: 4, completePct: 50, newSites: 'x', adoptionPct: null },
+        sourceUrlTemplate: 'https://example.com/{path}',
+      }),
+    );
+    expect(state.status).toBe('ready');
+    if (state.status !== 'ready') return;
+    const group = state.snapshot.groups[0]!;
+    expect(group.start).toBe(4);
+    expect(group).not.toHaveProperty('completePct');
+    expect(group.adoptionPct).toBeNull();
+    expect(group.byOwner).toEqual({ '@x': 2 });
+    expect(group).not.toHaveProperty('byDirectory');
+    expect(group.startHere).toEqual([{ filePath: 'a.ts', count: 1 }]);
+    expect(group).not.toHaveProperty('forecast');
+    expect(state.snapshot.sites[0]?.owners).toEqual(['@x']);
+    expect(state.snapshot.totals).toEqual({ sites: 2, start: 4, completePct: 50, adoptionPct: null });
+    expect(state.snapshot.sourceUrlTemplate).toBe('https://example.com/{path}');
+  });
+
+  it('drops totals without a site count', () => {
+    const state = parseSnapshotText(
+      JSON.stringify({ schemaVersion: 2, generatedAt: '2026-10-01T00:00:00Z', groups: [], totals: { start: 3 } }),
+    );
+    expect(state.status === 'ready' && state.snapshot.totals).toBeUndefined();
+  });
+});

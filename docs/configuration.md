@@ -61,7 +61,8 @@ A group is one migration: a set of deprecated packages and what replaces them. T
 | `enforcement` | no | `{ "mode": "report", "scope": "imports", "severity": "error" }` | How sites in this group are treated. Each field is defaulted on its own, so `{ "mode": "ratchet" }` is enough. |
 | `docs` | no | | URL of a migration guide. Must be a valid URL. Shown as "Migration guide" in violations. |
 | `description` | no | | Free text shown in reports. |
-| `owner` | no | | Team or person responsible for the migration. Shown in the dashboard's ownership view. |
+| `owner` | no | | Team or person responsible for the migration. Shown in the dashboard's ownership view, and used for sites that no CODEOWNERS rule covers. |
+| `start` | no | | Integer, at least 0. The number of sites the migration started with, used as the baseline for "% complete". Without it, the report uses the group's count in the earliest history entry, or the current count. See [dashboard.md](dashboard.md#numbers). |
 
 ### Package names
 

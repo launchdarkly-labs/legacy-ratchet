@@ -1,6 +1,8 @@
 import {
+  assignOwners,
   BASELINE_PATH,
   buildReport,
+  collectAdoption,
   collectSites,
   enrichSites,
   HISTORY_PATH,
@@ -21,7 +23,7 @@ import { formatCheckMarkdown } from './format/markdown.js';
 import { CHECK_FORMATS, githubPaths, renderCheck, type CheckFormat } from './format/render.js';
 import { colorEnabled, createColors, type Env } from './io.js';
 import { locateConfig } from './load-sync.js';
-import { loadBaselineSync, loadConfigSync, loadHistorySync } from './load.js';
+import { loadBaselineSync, loadCodeownersSync, loadConfigSync, loadHistorySync } from './load.js';
 import { buildCheckOutcome, ratchetGroupsWithoutBaseline } from './outcome.js';
 
 export type CruiseResult = Parameters<typeof fromCruiseResult>[0];
@@ -118,11 +120,17 @@ function writeReport(
   root: string,
   config: LegacyConfig,
   sites: readonly ImportSite[],
+  imports: readonly RawImport[],
   notes: string[],
 ): void {
   const history = loadHistorySync(path.join(root, HISTORY_PATH), (m) => notes.push(`warning: ${m}`));
   const revision = revisionSync(root);
-  const report = buildReport(config, sites, { history, ...(revision ? { revision } : {}) });
+  const rules = loadCodeownersSync(root);
+  const report = buildReport(config, rules ? assignOwners(sites, rules) : sites, {
+    history,
+    adoption: collectAdoption(config, imports),
+    ...(revision ? { revision } : {}),
+  });
   let content: string;
   if (file.endsWith('.json')) {
     content = `${JSON.stringify(report, null, 2)}\n`;
@@ -205,7 +213,7 @@ function check(result: CruiseResult, environment: PluginEnvironment): ReporterOu
     appendFileSync(env.GITHUB_STEP_SUMMARY, `${formatCheckMarkdown(outcome).trimEnd()}\n`, 'utf8');
   }
   if (env.LEGACY_RATCHET_REPORT) {
-    writeReport(path.resolve(cwd, env.LEGACY_RATCHET_REPORT), root, config, located.sites, notes);
+    writeReport(path.resolve(cwd, env.LEGACY_RATCHET_REPORT), root, config, located.sites, mapped.imports, notes);
   }
   return {
     output: withNewline(output) + notes.map((n) => `${n}\n`).join(''),

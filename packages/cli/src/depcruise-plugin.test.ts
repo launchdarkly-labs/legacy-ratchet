@@ -278,6 +278,19 @@ describe('formats and reports', () => {
     expect(runPlugin(r, { env: {}, cwd: tmp, isTTY: false }).output).not.toContain('\u001b[');
   });
 
+  it('counts adoption and CODEOWNERS owners in the LEGACY_RATCHET_REPORT snapshot', () => {
+    write('CODEOWNERS', '/src/b.ts @acme/web\n');
+    vi.stubEnv('LEGACY_RATCHET_REPORT', path.join(tmp, 'out/report.json'));
+    legacyRatchetReporter(resultFor(tmp, [...modules(), moduleWith('src/n.ts', ['react-hook-form', 'dayjs'])]));
+    const snapshot = JSON.parse(fs.readFileSync(path.join(tmp, 'out/report.json'), 'utf8')) as {
+      groups: Array<{ id: string; newSites: number; byOwner: Record<string, number> }>;
+    };
+    expect(snapshot.groups.map((g) => [g.id, g.newSites, g.byOwner])).toEqual([
+      ['forms', 1, { '@acme/web': 1, Unowned: 1 }],
+      ['dates', 1, { '@acme/web': 1 }],
+    ]);
+  });
+
   it('writes a JSON snapshot and an HTML report with LEGACY_RATCHET_REPORT', () => {
     vi.stubEnv('LEGACY_RATCHET_REPORT', path.join(tmp, 'out/report.json'));
     legacyRatchetReporter(resultFor(tmp, modules()));

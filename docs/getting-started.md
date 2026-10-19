@@ -137,4 +137,4 @@ git commit -m "Ratchet legacy baseline"
 pnpm exec legacy report --format html --append-history
 ```
 
-This writes `legacy-report.html`, a self-contained dashboard with remaining sites per group, top files, owners, and a trend line built from `.legacy/history.jsonl`. `--append-history` adds the current totals to that file. Run it on your main branch on a schedule to build the trend. See [dashboard.md](dashboard.md).
+This writes `legacy-report.html`, a self-contained dashboard with progress and adoption per group, owners, the files with the fewest legacy imports to start with, and every import site.

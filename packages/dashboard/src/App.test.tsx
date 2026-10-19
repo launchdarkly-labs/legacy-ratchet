@@ -1,8 +1,8 @@
-import { cleanup, fireEvent, render, screen, within } from '@testing-library/react';
+import { act, cleanup, fireEvent, render, screen, within } from '@testing-library/react';
 import { afterEach, describe, expect, it } from 'vitest';
 
 import { App } from './App';
-import { readSnapshot } from './data';
+import { parseSnapshotText, readSnapshot } from './data';
 import { sampleSnapshot } from './sample-data';
 
 afterEach(() => {
@@ -11,37 +11,126 @@ afterEach(() => {
   window.history.replaceState(null, '', '/');
 });
 
-function groupsTable() {
-  const section = screen.getByRole('region', { name: 'Groups' });
-  return within(section).getByRole('table');
+function renderSample(snapshot = sampleSnapshot) {
+  return render(<App state={{ status: 'ready', snapshot }} />);
 }
 
-describe('App', () => {
-  it('renders totals and every group from a snapshot', () => {
-    render(<App state={{ status: 'ready', snapshot: sampleSnapshot }} />);
+function groupList() {
+  const section = screen.getByRole('region', { name: 'Groups' });
+  return within(section).getByRole('list');
+}
 
-    expect(screen.getByTestId('total-sites').textContent).toBe(String(sampleSnapshot.totalSites));
-    expect(screen.getByTestId('group-count').textContent).toBe('3');
-    expect(within(screen.getByRole('banner')).getByText('9f3e2d1 on main')).toBeTruthy();
+function rowIds(): string[] {
+  return within(groupList())
+    .getAllByRole('listitem')
+    .map((li) => li.getAttribute('data-group-id') ?? '');
+}
 
-    const table = groupsTable();
-    for (const group of sampleSnapshot.groups) {
-      const button = within(table).getByRole('button', { name: group.id });
-      const row = button.closest('tr');
-      expect(row).toBeTruthy();
-      expect(within(row as HTMLElement).getByText(group.mode)).toBeTruthy();
-      expect(within(row as HTMLElement).getByText(String(group.sites))).toBeTruthy();
-    }
+function openGroup(id: string) {
+  fireEvent.click(within(groupList()).getByRole('button', { name: id }));
+}
 
-    const ownership = screen.getByRole('region', { name: 'Ownership' });
-    expect(within(ownership).getByRole('rowheader', { name: 'Unowned' })).toBeTruthy();
-    expect(within(ownership).getByRole('rowheader', { name: '@acme/web-platform' })).toBeTruthy();
+describe('overview', () => {
+  it('shows the migrated headline, the remaining count and the revision', () => {
+    renderSample();
+    const totals = sampleSnapshot.totals!;
+    expect(screen.getByTestId('headline').textContent).toBe(`${totals.adoptionPct}% migrated`);
+    expect(screen.getByTestId('headline').getAttribute('title')).toBe(
+      'Share of imports that already use the replacement packages.',
+    );
+    expect(screen.getByTestId('headline-sub').textContent).toBe(
+      `${totals.sites} legacy imports left · ${totals.newSites} imports already on replacements`,
+    );
+    expect(screen.getByRole('progressbar', { name: 'Migrated overall' }).getAttribute('aria-valuenow')).toBe(
+      String(totals.adoptionPct),
+    );
+    expect(screen.getByTestId('generated').textContent).toContain('commit 9f3e2d1 on main');
   });
 
-  it('shows a decreasing delta against the previous history entry', () => {
-    render(<App state={{ status: 'ready', snapshot: sampleSnapshot }} />);
-    const formsRow = within(groupsTable()).getByRole('button', { name: 'forms' }).closest('tr') as HTMLElement;
-    expect(within(formsRow).getByText('down 2 since the previous report')).toBeTruthy();
+  it('formats percentages with at most one decimal and thousands separators', () => {
+    const snapshot = {
+      ...sampleSnapshot,
+      totals: { sites: 12345, start: 20000, completePct: 38.3, newSites: 6789, adoptionPct: 35.46 },
+    };
+    renderSample(snapshot);
+    expect(screen.getByTestId('headline').textContent).toBe('35.5% migrated');
+    expect(screen.getByTestId('headline-sub').textContent).toContain('12,345 legacy imports left');
+    expect(screen.getByTestId('headline-sub').textContent).toContain('6,789 imports already on replacements');
+  });
+
+  it('falls back to the removed share, then to the remaining count', () => {
+    renderSample({ ...sampleSnapshot, totals: { sites: 10, start: 40, completePct: 75, newSites: 0, adoptionPct: null } });
+    expect(screen.getByTestId('headline').textContent).toBe('75% migrated');
+    cleanup();
+    renderSample({ ...sampleSnapshot, totals: { sites: 10, start: 10, completePct: 0, newSites: 0, adoptionPct: null } });
+    expect(screen.getByTestId('headline').textContent).toBe('10 legacy imports left');
+    expect(screen.queryByRole('progressbar', { name: 'Migrated overall' })).toBeNull();
+  });
+
+  it('lists groups least migrated first with done groups last', () => {
+    renderSample();
+    expect(rowIds()).toEqual(['dates', 'http', 'forms', 'icons']);
+    const icons = within(groupList()).getAllByRole('listitem')[3] as HTMLElement;
+    expect(within(icons).getByText('Done')).toBeTruthy();
+    const dates = within(groupList()).getAllByRole('listitem')[0] as HTMLElement;
+    expect(within(dates).getByRole('progressbar', { name: 'dates migrated' })).toBeTruthy();
+    expect(within(dates).getByText('@acme/frontend-infra')).toBeTruthy();
+    const http = within(groupList()).getAllByRole('listitem')[1] as HTMLElement;
+    expect(within(http).getByText('removed')).toBeTruthy();
+    expect(within(http).getByText('Unowned')).toBeTruthy();
+  });
+
+  it('shows no bar for a group without replacements that has not shrunk', () => {
+    const snapshot = {
+      ...sampleSnapshot,
+      groups: sampleSnapshot.groups.map((g) => (g.id === 'http' ? { ...g, start: g.sites, completePct: 0 } : g)),
+    };
+    renderSample(snapshot);
+    const http = within(groupList()).getAllByRole('listitem').find((li) => li.getAttribute('data-group-id') === 'http')!;
+    expect(within(http).queryByRole('progressbar')).toBeNull();
+    expect(within(http).getByText('No replacement listed')).toBeTruthy();
+  });
+
+  it('opens a group when any part of the row is clicked', () => {
+    renderSample();
+    const row = within(groupList()).getAllByRole('listitem')[0] as HTMLElement;
+    fireEvent.click(row.querySelector('.group-row__left') as HTMLElement);
+    expect(screen.getByRole('heading', { level: 2, name: /^dates/ })).toBeTruthy();
+    expect(window.location.hash).toBe('#group=dates');
+  });
+
+  it('renders an older snapshot without progress fields', () => {
+    const old = {
+      schemaVersion: 2,
+      generatedAt: '2026-10-01T00:00:00Z',
+      totalSites: 3,
+      groups: [
+        { id: 'a', mode: 'report', old: ['x'], new: ['y'], sites: 3, files: 2, byPackage: { x: 3 }, topFiles: [] },
+        { id: 'b', mode: 'ban', old: ['z'], new: [], sites: 0, files: 0, byPackage: {}, topFiles: [] },
+      ],
+      sites: [
+        { id: 's1', groupId: 'a', filePath: 'src/one.ts', packageName: 'x', moduleSpecifier: 'x', importKind: 'import', typeOnly: false, sourceFingerprint: 'f' },
+        { id: 's2', groupId: 'a', filePath: 'src/two.ts', packageName: 'x', moduleSpecifier: 'x', importKind: 'import', typeOnly: false, sourceFingerprint: 'f' },
+        { id: 's3', groupId: 'a', filePath: 'src/two.ts', packageName: 'x', moduleSpecifier: 'x', importKind: 'require', typeOnly: false, sourceFingerprint: 'f' },
+      ],
+      history: [{ generatedAt: '2026-09-01T00:00:00Z', totals: { a: 9 } }],
+    };
+    const state = parseSnapshotText(JSON.stringify(old));
+    expect(state.status).toBe('ready');
+    render(<App state={state} />);
+    expect(screen.getByTestId('headline').textContent).toBe('3 legacy imports left');
+    expect(rowIds()).toEqual(['a', 'b']);
+
+    openGroup('a');
+    expect(screen.getByTestId('group-counts').textContent).toBe('3 left');
+    const breakdown = screen.getByRole('region', { name: 'Where the legacy imports are' });
+    expect(within(breakdown).getByRole('button', { name: /Unowned/ })).toBeTruthy();
+    expect(within(breakdown).getByRole('button', { name: /^src/ })).toBeTruthy();
+    const startHere = screen.getByRole('region', { name: 'Start here' });
+    expect(within(startHere).getAllByRole('listitem').map((li) => li.textContent)).toEqual([
+      'src/one.ts1 import',
+      'src/two.ts2 imports',
+    ]);
   });
 
   it('shows the empty state when the data element still holds the placeholder', () => {
@@ -49,7 +138,6 @@ describe('App', () => {
       '<script id="legacy-ratchet-data" type="application/json">__LEGACY_RATCHET_DATA__</script>';
     const state = readSnapshot(document);
     expect(state.status).toBe('missing');
-
     render(<App state={state} />);
     expect(screen.getByRole('heading', { name: 'No report data' })).toBeTruthy();
     expect(screen.getByText('legacy report --format html')).toBeTruthy();
@@ -61,55 +149,98 @@ describe('App', () => {
     expect(screen.getByText(/not valid JSON/)).toBeTruthy();
   });
 
-  it('drills into a group and narrows sites with the filters', () => {
-    render(<App state={{ status: 'ready', snapshot: sampleSnapshot }} />);
-    fireEvent.click(within(groupsTable()).getByRole('button', { name: 'forms' }));
+  it('renders no trend or history UI', () => {
+    renderSample({
+      ...sampleSnapshot,
+      history: [{ generatedAt: '2026-09-01T00:00:00Z', totals: { forms: 50 } }],
+    });
+    expect(document.querySelector('svg')).toBeNull();
+    expect(screen.queryByText(/trend|per week|last 30 days/i)).toBeNull();
+  });
+});
 
-    const detail = screen.getByRole('region', { name: /^forms/ });
-    const sitesTable = within(detail).getByRole('table', { name: 'Import sites in forms' });
-    const formsSites = sampleSnapshot.sites.filter((s) => s.groupId === 'forms');
-    expect(within(sitesTable).getAllByRole('row')).toHaveLength(formsSites.length + 1);
-    expect(within(detail).getByTestId('site-count').textContent).toContain(
-      `Showing ${formsSites.length} of ${formsSites.length} sites`,
+describe('group view', () => {
+  it('shows progress, counts and the starting point', () => {
+    renderSample();
+    openGroup('forms');
+    const forms = sampleSnapshot.groups.find((g) => g.id === 'forms')!;
+    expect(screen.getByTestId('group-pct').textContent).toBe(`${forms.adoptionPct}% migrated`);
+    expect(screen.getByTestId('group-counts').textContent).toBe(
+      `${forms.sites} left · ${forms.newSites} on replacements · started at ${forms.start}`,
     );
-
-    fireEvent.change(within(detail).getByRole('searchbox'), { target: { value: 'checkout' } });
-    const checkout = formsSites.filter((s) => s.filePath.includes('checkout'));
-    expect(checkout.length).toBeGreaterThan(0);
-    expect(checkout.length).toBeLessThan(formsSites.length);
-    expect(within(sitesTable).getAllByRole('row')).toHaveLength(checkout.length + 1);
-
-    fireEvent.change(within(detail).getByRole('combobox', { name: 'Package' }), { target: { value: 'formik' } });
-    const checkoutFormik = checkout.filter((s) => s.packageName === 'formik');
-    expect(within(sitesTable).getAllByRole('row')).toHaveLength(checkoutFormik.length + 1);
-
-    fireEvent.click(within(detail).getByRole('button', { name: 'Clear' }));
-    fireEvent.change(within(detail).getByRole('combobox', { name: 'Kind' }), { target: { value: 'require' } });
-    const requires = formsSites.filter((s) => s.importKind === 'require');
-    expect(requires.length).toBeGreaterThan(0);
-    expect(within(sitesTable).getAllByRole('row')).toHaveLength(requires.length + 1);
-
-    fireEvent.click(within(detail).getByRole('button', { name: 'Clear' }));
-    expect(within(detail).getByText('Removed together with the store in Q4')).toBeTruthy();
-
-    fireEvent.click(within(detail).getByRole('button', { name: 'Close' }));
-    expect(screen.queryByRole('region', { name: /^forms/ })).toBeNull();
+    expect(screen.getByRole('link', { name: 'Migration guide' }).getAttribute('href')).toBe(forms.docs);
   });
 
-  it('opens the group named in the URL hash and keeps the hash in sync', () => {
-    window.history.replaceState(null, '', '/#group=dates');
-    render(<App state={{ status: 'ready', snapshot: sampleSnapshot }} />);
-    expect(screen.getByRole('region', { name: /^dates/ })).toBeTruthy();
-    fireEvent.click(within(groupsTable()).getByRole('button', { name: 'http' }));
-    expect(window.location.hash).toBe('#group=http');
-    fireEvent.click(within(groupsTable()).getByRole('button', { name: 'http' }));
-    expect(window.location.hash).toBe('');
-    expect(screen.queryByRole('region', { name: /^http/ })).toBeNull();
+  it('omits the starting point when nothing has been removed', () => {
+    renderSample();
+    openGroup('dates');
+    expect(screen.getByTestId('group-counts').textContent).not.toContain('started at');
   });
 
-  it('caps rendered site rows at 500', () => {
-    const base = sampleSnapshot.sites.find((s) => s.groupId === 'http');
-    if (!base) throw new Error('sample has no http site');
+  it('filters files from the breakdown bars and the filter controls', () => {
+    renderSample();
+    openGroup('forms');
+    const formsSites = sampleSnapshot.sites.filter((s) => s.groupId === 'forms');
+    const formsFiles = new Set(formsSites.map((s) => s.filePath));
+    const table = () => screen.getByRole('table', { name: 'Files in forms' });
+    expect(within(table()).getAllByRole('row')).toHaveLength(formsFiles.size + 1);
+
+    const breakdown = screen.getByRole('region', { name: 'Where the legacy imports are' });
+    const payments = within(breakdown).getByRole('button', { name: /^@acme\/payments/ });
+    fireEvent.click(payments);
+    expect(payments.getAttribute('aria-pressed')).toBe('true');
+    const paymentFiles = new Set(
+      formsSites.filter((s) => s.owners?.includes('@acme/payments')).map((s) => s.filePath),
+    );
+    expect(paymentFiles.size).toBeGreaterThan(0);
+    expect(within(table()).getAllByRole('row')).toHaveLength(paymentFiles.size + 1);
+    expect((screen.getByRole('combobox', { name: 'Team' }) as HTMLSelectElement).value).toBe('@acme/payments');
+
+    fireEvent.click(within(breakdown).getByRole('button', { name: /^formik/ }));
+    const both = new Set(
+      formsSites
+        .filter((s) => s.owners?.includes('@acme/payments') && s.packageName === 'formik')
+        .map((s) => s.filePath),
+    );
+    expect(within(table()).getAllByRole('row')).toHaveLength(both.size + 1);
+
+    fireEvent.click(screen.getByRole('button', { name: 'Clear' }));
+    fireEvent.click(within(breakdown).getByRole('button', { name: /^test/ }));
+    expect(within(table()).getAllByRole('row').slice(1).map((r) => r.textContent)).toEqual([
+      'test/utils/renderForm.tsx2@acme/web-platform',
+    ]);
+
+    fireEvent.click(screen.getByRole('button', { name: 'Clear' }));
+    fireEvent.change(screen.getByRole('searchbox'), { target: { value: 'checkout' } });
+    const checkout = [...formsFiles].filter((f) => f.includes('checkout'));
+    expect(within(table()).getAllByRole('row')).toHaveLength(checkout.length + 1);
+    expect(screen.getByTestId('file-count').textContent).toContain(
+      `Showing ${checkout.length} of ${checkout.length} matching files (${formsFiles.size} total)`,
+    );
+  });
+
+  it('keeps filters when coming back from a file', () => {
+    renderSample();
+    openGroup('forms');
+    fireEvent.change(screen.getByRole('searchbox'), { target: { value: 'checkout' } });
+    fireEvent.click(screen.getByRole('button', { name: 'src/features/checkout/PaymentForm.tsx' }));
+    fireEvent.click(screen.getByRole('button', { name: /Back to forms/ }));
+    expect((screen.getByRole('searchbox') as HTMLInputElement).value).toBe('checkout');
+  });
+
+  it('lists the files with the fewest imports under Start here', () => {
+    renderSample();
+    openGroup('forms');
+    const forms = sampleSnapshot.groups.find((g) => g.id === 'forms')!;
+    const startHere = screen.getByRole('region', { name: 'Start here' });
+    const first = forms.startHere![0]!;
+    expect(within(startHere).getAllByRole('listitem')).toHaveLength(forms.startHere!.length);
+    fireEvent.click(within(startHere).getByRole('button', { name: first.filePath }));
+    expect(screen.getByRole('heading', { level: 2, name: first.filePath })).toBeTruthy();
+  });
+
+  it('caps rendered file rows at 500', () => {
+    const base = sampleSnapshot.sites.find((s) => s.groupId === 'http')!;
     const many = Array.from({ length: 1200 }, (_, i) => ({
       ...base,
       id: `http|src/gen/file${i}.ts|import|request`,
@@ -121,58 +252,101 @@ describe('App', () => {
       totalSites: many.length,
       groups: sampleSnapshot.groups.map((g) => (g.id === 'http' ? { ...g, sites: many.length } : g)),
     };
-    render(<App state={{ status: 'ready', snapshot }} />);
-    fireEvent.click(within(groupsTable()).getByRole('button', { name: 'http' }));
-    const detail = screen.getByRole('region', { name: /^http/ });
-    expect(within(within(detail).getByRole('table', { name: 'Import sites in http' })).getAllByRole('row')).toHaveLength(
-      501,
+    renderSample(snapshot);
+    openGroup('http');
+    expect(within(screen.getByRole('table', { name: 'Files in http' })).getAllByRole('row')).toHaveLength(501);
+    expect(screen.getByTestId('file-count').textContent).toContain('Showing 500 of 1,200');
+  });
+});
+
+describe('file view', () => {
+  function openPlanPicker() {
+    renderSample();
+    openGroup('forms');
+    fireEvent.click(screen.getByRole('button', { name: 'src/features/billing/PlanPicker.tsx' }));
+  }
+
+  it('lists each import with kind chips, owners and a source link', () => {
+    openPlanPicker();
+    expect(window.location.hash).toBe('#group=forms&file=src/features/billing/PlanPicker.tsx');
+    const table = screen.getByRole('table', { name: 'Legacy imports in src/features/billing/PlanPicker.tsx' });
+    const rows = within(table).getAllByRole('row').slice(1);
+    expect(rows).toHaveLength(1);
+    const row = rows[0]!;
+    expect(within(row).getByText('ES import')).toBeTruthy();
+    expect(within(row).getByText('import()')).toBeTruthy();
+    expect(within(row).getByText('×2')).toBeTruthy();
+    expect(within(row).getByText('@acme/payments')).toBeTruthy();
+    const link = within(row).getByRole('link', { name: 'View formik on source, line 3' });
+    expect(link.getAttribute('href')).toBe(
+      'https://example.com/acme/app/blob/9f3e2d1c0b4a59687766554433221100ffeeddcc/src/features/billing/PlanPicker.tsx#L3',
     );
-    expect(within(detail).getByTestId('site-count').textContent).toContain('Showing 500 of 1,200');
+    expect(screen.getByTestId('replace-with').textContent).toBe('Replace with: react-hook-form — migration guide');
   });
 
-  it('labels site kinds, merged syntax chips, occurrences, and omits missing lines', () => {
-    render(<App state={{ status: 'ready', snapshot: sampleSnapshot }} />);
-    fireEvent.click(within(groupsTable()).getByRole('button', { name: 'forms' }));
-    const detail = screen.getByRole('region', { name: /^forms/ });
-    const sitesTable = within(detail).getByRole('table', { name: 'Import sites in forms' });
+  it('shows suppression reasons and omits the line anchor when there is no line', () => {
+    renderSample();
+    openGroup('http');
+    fireEvent.click(
+      within(screen.getByRole('table', { name: 'Files in http' })).getByRole('button', { name: 'test/mocks/http.ts' }),
+    );
+    const link = screen.getByRole('link', { name: 'View superagent on source' });
+    expect(link.getAttribute('href')).toBe(
+      'https://example.com/acme/app/blob/9f3e2d1c0b4a59687766554433221100ffeeddcc/test/mocks/http.ts',
+    );
+    expect(screen.getByTestId('replace-with').textContent).toBe('Replace with: no replacement listed');
 
-    const planPicker = within(sitesTable).getByText('src/features/billing/PlanPicker.tsx').closest('tr') as HTMLElement;
-    expect(within(planPicker).getByText('ES import')).toBeTruthy();
-    expect(within(planPicker).getByText('import()')).toBeTruthy();
-    expect(within(planPicker).getByText('import')).toBeTruthy();
-    expect(within(planPicker).getByText('\u00d72')).toBeTruthy();
-    expect(within(planPicker).getByText(':3')).toBeTruthy();
-
-    const reducer = within(sitesTable).getByText('redux-form/lib/reducer').closest('tr') as HTMLElement;
-    expect(within(reducer).getByText('require')).toBeTruthy();
-    expect(reducer.querySelector('.chip')).toBeNull();
-    expect(reducer.querySelector('.occurrences')).toBeNull();
-
-    const payment = within(sitesTable).getByText('redux-form/lib/Field').closest('tr') as HTMLElement;
-    expect(payment.querySelector('.chip')).toBeNull();
-
-    fireEvent.click(within(detail).getByRole('button', { name: 'Close' }));
-    fireEvent.click(within(groupsTable()).getByRole('button', { name: 'http' }));
-    const http = screen.getByRole('table', { name: 'Import sites in http' });
-    const mock = within(http)
-      .getAllByText('test/mocks/http.ts')
-      .map((el) => el.closest('tr') as HTMLElement)
-      .find((row) => within(row).queryByText('superagent'));
-    expect(mock).toBeTruthy();
-    expect((mock as HTMLElement).querySelector('.path')?.textContent).toBe('test/mocks/http.ts');
-
-    const bridge = within(http).getByText('server/legacy-bridge.ts').closest('tr') as HTMLElement;
-    expect(within(bridge).getByText('require')).toBeTruthy();
-    expect(within(bridge).getByText('import =')).toBeTruthy();
-    expect(within(bridge).getByText('require()')).toBeTruthy();
+    fireEvent.click(screen.getByRole('button', { name: /Back to http/ }));
+    fireEvent.click(screen.getByRole('button', { name: 'All groups' }));
+    openGroup('forms');
+    fireEvent.click(screen.getByRole('button', { name: 'src/store/reducers.ts' }));
+    expect(screen.getByText('Removed together with the store in Q4')).toBeTruthy();
   });
 
-  it('explains what a site is and marks the counting change in the trend', () => {
-    render(<App state={{ status: 'ready', snapshot: sampleSnapshot }} />);
-    expect(within(screen.getByRole('banner')).getByText('import sites (one per file and package)')).toBeTruthy();
-    const trend = screen.getByRole('region', { name: 'Trend' });
-    expect(within(trend).getByRole('img', { name: /^All groups: .*Counting changed: one site per file and package from here/ })).toBeTruthy();
-    expect(within(trend).getAllByTestId('identity-marker').length).toBe(1 + sampleSnapshot.groups.length);
-    expect(within(trend).getByRole('rowheader', { name: /Counting changed: one site per file and package from here/ })).toBeTruthy();
+  it('renders no source link without a template', () => {
+    renderSample({ ...sampleSnapshot, sourceUrlTemplate: undefined });
+    openGroup('forms');
+    fireEvent.click(screen.getByRole('button', { name: 'src/features/billing/PlanPicker.tsx' }));
+    expect(screen.queryByRole('link', { name: /on source/ })).toBeNull();
+  });
+});
+
+describe('navigation', () => {
+  it('restores the file view from a deep link', () => {
+    window.history.replaceState(null, '', '/#group=forms&file=src/features/billing/PlanPicker.tsx');
+    renderSample();
+    expect(screen.getByRole('heading', { level: 2, name: 'src/features/billing/PlanPicker.tsx' })).toBeTruthy();
+  });
+
+  it('restores the group view from a deep link and ignores unknown files and groups', () => {
+    window.history.replaceState(null, '', '/#group=dates&file=nope.ts');
+    renderSample();
+    expect(screen.getByRole('heading', { level: 2, name: /^dates/ })).toBeTruthy();
+    cleanup();
+    window.history.replaceState(null, '', '/#group=missing');
+    renderSample();
+    expect(screen.getByRole('region', { name: 'Groups' })).toBeTruthy();
+  });
+
+  it('goes back through the levels with the back buttons and returns focus to the row', () => {
+    renderSample();
+    openGroup('forms');
+    fireEvent.click(screen.getByRole('button', { name: 'src/features/billing/PlanPicker.tsx' }));
+    fireEvent.click(screen.getByRole('button', { name: /Back to forms/ }));
+    expect(window.location.hash).toBe('#group=forms');
+    expect(screen.getByRole('heading', { level: 2, name: /^forms/ })).toBeTruthy();
+    fireEvent.click(screen.getByRole('button', { name: /All groups/ }));
+    expect(window.location.hash).toBe('');
+    expect(document.activeElement?.textContent).toBe('forms');
+  });
+
+  it('follows browser history', () => {
+    renderSample();
+    openGroup('dates');
+    act(() => {
+      window.history.replaceState(null, '', '/');
+      window.dispatchEvent(new PopStateEvent('popstate'));
+    });
+    expect(screen.getByRole('region', { name: 'Groups' })).toBeTruthy();
   });
 });

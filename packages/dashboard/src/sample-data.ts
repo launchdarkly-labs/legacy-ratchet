@@ -1,14 +1,6 @@
-import type {
-  EnforcementMode,
-  GroupReport,
-  HistoryEntry,
-  ImportKind,
-  ImportSite,
-  InlineSuppression,
-  ReportSnapshot,
-} from '@legacy-ratchet/core';
+import type { EnforcementMode, ImportKind, ImportSite, InlineSuppression } from '@legacy-ratchet/core';
 
-import { siteKindOf } from './model';
+import { type DashboardGroup, directoryOf, ownerOf, type SeriesSnapshot, siteKindOf, siteOwners } from './model';
 
 interface GroupMeta {
   id: string;
@@ -18,6 +10,8 @@ interface GroupMeta {
   mode: EnforcementMode;
   old: string[];
   new: string[];
+  start: number;
+  newSites: number;
 }
 
 interface SiteSeed {
@@ -38,6 +32,8 @@ const GROUPS: GroupMeta[] = [
     mode: 'ratchet',
     old: ['redux-form', 'formik'],
     new: ['react-hook-form'],
+    start: 74,
+    newSites: 142,
   },
   {
     id: 'dates',
@@ -47,15 +43,49 @@ const GROUPS: GroupMeta[] = [
     mode: 'ban',
     old: ['moment', 'moment-timezone'],
     new: ['date-fns', '@js-temporal/polyfill'],
+    start: 0,
+    newSites: 2,
   },
   {
     id: 'http',
-    description: 'Legacy HTTP clients replaced by ky',
+    description: 'Legacy HTTP clients to remove; use the built-in fetch',
     mode: 'report',
     old: ['request', 'superagent', '@acme/legacy-http'],
-    new: ['ky'],
+    new: [],
+    start: 21,
+    newSites: 0,
+  },
+  {
+    id: 'icons',
+    description: 'Icon font replaced by inline SVG components',
+    owner: '@acme/design-system',
+    docs: 'https://engineering.example.com/migrations/icons',
+    mode: 'ban',
+    old: ['font-awesome'],
+    new: ['@acme/icons'],
+    start: 48,
+    newSites: 61,
   },
 ];
+
+const CODEOWNERS: Array<[string, string[]]> = [
+  ['src/features/checkout/', ['@acme/payments']],
+  ['src/features/billing/', ['@acme/payments']],
+  ['src/features/account/', ['@acme/identity']],
+  ['src/features/admin/', ['@acme/identity', '@acme/security']],
+  ['src/features/reports/', ['@acme/insights']],
+  ['src/features/calendar/', ['@acme/insights']],
+  ['src/components/', ['@acme/design-system']],
+  ['src/lib/time/', ['@acme/frontend-infra']],
+  ['server/', ['@acme/backend']],
+  ['src/api/', ['@acme/backend']],
+];
+
+function ownersFor(filePath: string): string[] | undefined {
+  let owners: string[] | undefined;
+  for (const [prefix, list] of CODEOWNERS) if (filePath.startsWith(prefix)) owners = list;
+  return owners;
+}
 
 const SEEDS: Record<string, SiteSeed[]> = {
   forms: [
@@ -194,56 +224,55 @@ function buildSites(): ImportSite[] {
         occurrences: occurrences.length,
         ...(position.line !== undefined ? { line: position.line, column: kind === 'require' ? 25 : 20 } : {}),
         ...(suppression ? { suppression } : {}),
+        ...(ownersFor(first.file) ? { owners: ownersFor(first.file) } : {}),
       });
     }
   }
   return sites.sort((x, y) => (x.id < y.id ? -1 : x.id > y.id ? 1 : 0));
 }
 
-function summarize(meta: GroupMeta, sites: readonly ImportSite[]): GroupReport {
+function round1(n: number): number {
+  return Math.round(n * 10) / 10;
+}
+
+function count<T>(items: readonly T[], keysOf: (item: T) => string[]): Record<string, number> {
+  const out: Record<string, number> = {};
+  for (const item of items) for (const key of keysOf(item)) out[key] = (out[key] ?? 0) + 1;
+  return out;
+}
+
+function summarize(meta: GroupMeta, sites: readonly ImportSite[]): DashboardGroup {
   const own = sites.filter((s) => s.groupId === meta.id);
-  const byPackage: Record<string, number> = {};
-  const byFile = new Map<string, number>();
-  for (const s of own) {
-    byPackage[s.packageName] = (byPackage[s.packageName] ?? 0) + 1;
-    byFile.set(s.filePath, (byFile.get(s.filePath) ?? 0) + 1);
-  }
-  const topFiles = [...byFile]
-    .map(([filePath, count]) => ({ filePath, count }))
-    .sort((x, y) => y.count - x.count || x.filePath.localeCompare(y.filePath))
-    .slice(0, 10);
-  return { ...meta, sites: own.length, files: byFile.size, byPackage, topFiles };
+  const byPackage = count(own, (s) => [s.packageName]);
+  const byFile = count(own, (s) => [s.filePath]);
+  const files = Object.entries(byFile).map(([filePath, n]) => ({ filePath, count: n }));
+  const topFiles = [...files].sort((x, y) => y.count - x.count || x.filePath.localeCompare(y.filePath)).slice(0, 10);
+  const startHere = [...files].sort((x, y) => x.count - y.count || x.filePath.localeCompare(y.filePath)).slice(0, 10);
+  const start = Math.max(meta.start, own.length);
+  return {
+    ...meta,
+    sites: own.length,
+    files: files.length,
+    byPackage,
+    topFiles,
+    start,
+    completePct: start === 0 ? 100 : round1(((start - own.length) / start) * 100),
+    adoptionPct:
+      meta.new.length === 0 || meta.newSites + own.length === 0
+        ? null
+        : round1((meta.newSites / (meta.newSites + own.length)) * 100),
+    byOwner: count(own, (s) => siteOwners(s, ownerOf(meta))),
+    byDirectory: count(own, (s) => [directoryOf(s.filePath)]),
+    startHere,
+  };
 }
 
-const HISTORY_OFFSETS: Record<string, number[]> = {
-  forms: [29, 26, 24, 9, 5, 2],
-  dates: [17, 15, 14, 5, 3, 1],
-  http: [8, 8, 7, 2, 2, 1],
-};
-
-const FIRST_IDENTITY_V2 = 3;
-
-const HISTORY_COMMITS = ['1a2b3c4d5e', '2b3c4d5e6f', '3c4d5e6f70', '4d5e6f7081', '5e6f708192', '6f708192a3'];
-
-function buildHistory(groups: readonly GroupReport[], generatedAt: string): HistoryEntry[] {
-  const end = Date.parse(generatedAt);
-  const week = 7 * 24 * 60 * 60 * 1000;
-  return HISTORY_COMMITS.map((commit, i) => {
-    const totals: Record<string, number> = {};
-    for (const g of groups) totals[g.id] = g.sites + (HISTORY_OFFSETS[g.id]?.[i] ?? 0);
-    return {
-      generatedAt: new Date(end - (HISTORY_COMMITS.length - i) * week).toISOString(),
-      ...(i >= FIRST_IDENTITY_V2 ? { identityVersion: 2 as const } : {}),
-      revision: { commit: `${commit}${'0'.repeat(30)}`, branch: 'main' },
-      totals,
-    };
-  });
-}
-
-function buildSample(): ReportSnapshot {
+function buildSample(): SeriesSnapshot {
   const generatedAt = '2026-10-16T17:42:00.000Z';
   const sites = buildSites();
   const groups = GROUPS.map((g) => summarize(g, sites));
+  const start = groups.reduce((sum, g) => sum + (g.start ?? 0), 0);
+  const newSites = groups.reduce((sum, g) => sum + (g.newSites ?? 0), 0);
   return {
     schemaVersion: 2,
     generatedAt,
@@ -251,8 +280,16 @@ function buildSample(): ReportSnapshot {
     totalSites: sites.length,
     groups,
     sites,
-    history: buildHistory(groups, generatedAt),
+    history: [],
+    totals: {
+      sites: sites.length,
+      start,
+      completePct: round1(((start - sites.length) / start) * 100),
+      newSites,
+      adoptionPct: round1((newSites / (newSites + sites.length)) * 100),
+    },
+    sourceUrlTemplate: 'https://example.com/acme/app/blob/{sha}/{path}#L{line}',
   };
 }
 
-export const sampleSnapshot: ReportSnapshot = buildSample();
+export const sampleSnapshot: SeriesSnapshot = buildSample();

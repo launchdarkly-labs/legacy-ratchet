@@ -3,11 +3,14 @@ import { mkdir, readFile, stat, writeFile, appendFile } from 'node:fs/promises';
 import path from 'node:path';
 import {
   BASELINE_PATH,
+  CODEOWNERS_LOCATIONS,
   CONFIG_FILENAME,
   HISTORY_PATH,
   parseBaseline,
+  parseCodeowners,
   parseConfig,
   type Baseline,
+  type CodeownersRule,
   type HistoryEntry,
   type LegacyConfig,
   type ValidationIssue,
@@ -179,8 +182,11 @@ export function parseHistoryText(raw: string, label: string, warn: (message: str
   return entries;
 }
 
-export async function loadHistory(ctx: Context, warn: (message: string) => void): Promise<HistoryEntry[]> {
-  const file = historyFile(ctx);
+export async function loadHistory(
+  ctx: Context,
+  warn: (message: string) => void,
+  file: string = historyFile(ctx),
+): Promise<HistoryEntry[]> {
   let raw: string;
   try {
     raw = await readFile(file, 'utf8');
@@ -189,6 +195,48 @@ export async function loadHistory(ctx: Context, warn: (message: string) => void)
     throw new CliError(`Could not read ${displayPath(ctx, file)}: ${errorMessage(err)}`);
   }
   return parseHistoryText(raw, displayPath(ctx, file), warn);
+}
+
+export async function loadCodeowners(
+  ctx: Context,
+  option: string | false | undefined,
+): Promise<{ file: string; rules: CodeownersRule[] } | undefined> {
+  if (option === false) return undefined;
+  if (option !== undefined) {
+    const file = path.resolve(ctx.io.cwd, option);
+    let raw: string;
+    try {
+      raw = await readFile(file, 'utf8');
+    } catch (err) {
+      if (isNotFound(err)) throw new CliError(`No CODEOWNERS file found at ${displayPath(ctx, file)}`);
+      throw new CliError(`Could not read ${displayPath(ctx, file)}: ${errorMessage(err)}`);
+    }
+    return { file, rules: parseCodeowners(raw) };
+  }
+  for (const rel of CODEOWNERS_LOCATIONS) {
+    const file = path.join(ctx.root, rel);
+    try {
+      return { file, rules: parseCodeowners(await readFile(file, 'utf8')) };
+    } catch (err) {
+      if (isNotFound(err) || (err as { code?: unknown }).code === 'EISDIR') continue;
+      throw new CliError(`Could not read ${displayPath(ctx, file)}: ${errorMessage(err)}`);
+    }
+  }
+  return undefined;
+}
+
+/** Synchronous CODEOWNERS auto-detection relative to root; undefined when none exists. */
+export function loadCodeownersSync(root: string): CodeownersRule[] | undefined {
+  for (const rel of CODEOWNERS_LOCATIONS) {
+    let raw: string | undefined;
+    try {
+      raw = readFileSync(path.join(root, rel), 'utf8');
+    } catch {
+      raw = undefined;
+    }
+    if (raw !== undefined) return parseCodeowners(raw);
+  }
+  return undefined;
 }
 
 function readTextSync(file: string, label: string): string | undefined {

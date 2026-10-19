@@ -80,7 +80,7 @@ On GitHub, use the action. It builds the CLI from its own checkout, so pin it to
 | `legacy baseline migrate` | Rewrite a `schemaVersion: 1` baseline with file-level site ids. |
 | `legacy baseline verify --base <ref>` | Fail if the baseline gained entries since `<ref>`. |
 | `legacy check` | Fail on new sites in `ratchet` groups and any site in `ban` groups. Formats: `text`, `json`, `markdown`, `github`. |
-| `legacy report` | Build an HTML dashboard or JSON snapshot, optionally appending to history. |
+| `legacy report` | Build an HTML dashboard or JSON snapshot with progress, adoption and ownership, optionally appending to history. See [dashboard.md](docs/dashboard.md#report-options). |
 | `legacy depcruise-plugin-path` | Print the absolute path of the dependency-cruiser reporter plugin. |
 
 Exit codes: `0` success, `1` policy failure, `2` invalid configuration, missing baseline, or runtime error. The binary is also available as `legacy-ratchet`.
@@ -121,7 +121,7 @@ dependency-cruiser, through `@legacy-ratchet/depcruise`, extracts the imports of
 - [CI](docs/ci.md): GitHub Action, output formats, exit codes
 - [ESLint](docs/eslint.md): editor integration
 - [Exceptions](docs/exceptions.md): suppressions, exceptions, expiry, approvals
-- [Dashboard](docs/dashboard.md): reports and trends
+- [Dashboard](docs/dashboard.md): progress, adoption, and ownership reports
 
 Examples: [examples/vite-react](examples/vite-react) and [examples/pnpm-monorepo](examples/pnpm-monorepo).
 

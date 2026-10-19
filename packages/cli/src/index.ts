@@ -112,7 +112,11 @@ export async function run(argv: string[], io: Io = defaultIo()): Promise<number>
     .description('build an HTML or JSON report')
     .option('--format <format>', 'html or json', 'html')
     .option('--output <file>', 'output file (html default: legacy-report.html)')
-    .option('--append-history', 'append a snapshot to .legacy/history.jsonl'))
+    .option('--append-history', 'append a snapshot to the history file')
+    .option('--history <path>', 'history file to read and append to (default: <root>/.legacy/history.jsonl)')
+    .option('--source-url <template>', 'source link template with {sha}, {path} and {line}, stored in the report')
+    .option('--codeowners <path>', 'CODEOWNERS file (default: .github/CODEOWNERS, CODEOWNERS or docs/CODEOWNERS under --root)')
+    .option('--no-codeowners', 'do not read a CODEOWNERS file'))
     .action(action(reportCommand));
 
   program

@@ -27,6 +27,12 @@ inputs:
       with `legacy report --format html`. Runs even when the check fails.
     required: false
     default: ""
+  report-args:
+    description: >-
+      Extra arguments appended to `legacy report`, split on whitespace.
+      Only used when report-path is set.
+    required: false
+    default: ""
 
 runs:
   using: composite
@@ -68,6 +74,11 @@ runs:
       env:
         LEGACY_RATCHET_BIN: ${{ github.action_path }}/packages/cli/dist/bin.js
         LEGACY_RATCHET_REPORT_PATH: ${{ inputs.report-path }}
+        LEGACY_RATCHET_REPORT_ARGS: ${{ inputs.report-args }}
       run: |
         set -euo pipefail
-        node "$LEGACY_RATCHET_BIN" report --format html --output "$LEGACY_RATCHET_REPORT_PATH"
+        extra=()
+        if [ -n "$LEGACY_RATCHET_REPORT_ARGS" ]; then
+          read -r -a extra <<< "$LEGACY_RATCHET_REPORT_ARGS"
+        fi
+        node "$LEGACY_RATCHET_BIN" report --format html --output "$LEGACY_RATCHET_REPORT_PATH" ${extra[@]+"${extra[@]}"}

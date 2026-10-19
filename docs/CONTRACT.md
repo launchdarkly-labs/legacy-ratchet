@@ -41,7 +41,7 @@ export function reconcileMigratedBaseline(v1: Baseline, current: readonly Import
 export function parseBaseline(json: string): Baseline;           // throws Error with a readable message on invalid input; upgrades v1 in memory
 export function serializeBaseline(b: Baseline): string;          // 2-space JSON, allowed sorted, trailing newline, never upgradedFrom
 export function evaluate(config: LegacyConfig, sites: readonly ImportSite[], baseline: Baseline | undefined, opts?: { now?: Date }): CheckResult;
-export function buildReport(config: LegacyConfig, sites: readonly ImportSite[], opts?: { history?: HistoryEntry[]; revision?: BaselineRevision; now?: Date; topFiles?: number }): ReportSnapshot;
+export function buildReport(config: LegacyConfig, sites: readonly ImportSite[], opts?: { history?: HistoryEntry[]; revision?: BaselineRevision; now?: Date; topFiles?: number; adoption?: readonly AdoptionCount[]; sourceUrlTemplate?: string }): ReportSnapshot; // progress fields: see CONTRACT-PROGRESS.md
 export function historyEntry(report: ReportSnapshot): HistoryEntry;
 export function formatViolation(v: Violation): string;            // plain text, no color, see CLI example
 ```
@@ -104,7 +104,7 @@ Use `⚠` instead of `✖` for severity `warn`. Multiple replacements: `Preferre
 - `diffBaselines` → `added` = in candidate not base; `removed` = in base not candidate; both sorted. When `base.upgradedFrom === 1`, a candidate id is not added if its `(group, file, specifier)` exists in base under any kind, so `verify --base` works across the migration.
 - `reconcileMigratedBaseline(v1, current, meta)` → `allowed` = v1 ids mapped to v2 that are present in `current`, plus current ids whose `(group, file, specifier)` appears in v1 under any kind (covers `import x = require()` moving from `import` to `require`). It never allows a `(file, specifier)` pair v1 lacked. `added` = ids allowed only through that kind-less match; `dropped` = mapped ids not present now. Used by `legacy baseline migrate`.
 
-**Report** (`buildReport`, `schemaVersion: 2`): `groups` in config key order including groups with 0 sites; `byPackage` keyed by `packageName`; `topFiles` sorted by count desc then path asc, limited to `opts.topFiles ?? 10`; `history` = `opts.history ?? []`. `historyEntry` = `{ generatedAt, identityVersion: 2, revision, totals: { [groupId]: sites } }`.
+**Report** (`buildReport`, `schemaVersion: 2`): `groups` in config key order including groups with 0 sites; `byPackage` keyed by `packageName`; `topFiles` sorted by count desc then path asc, limited to `opts.topFiles ?? 10`; `history` = `opts.history ?? []`. `historyEntry` = `{ generatedAt, identityVersion: 2, revision, totals: { [groupId]: sites }, newTotals: { [groupId]: newSites } }`. Progress, adoption and ownership fields are specified in [CONTRACT-PROGRESS.md](CONTRACT-PROGRESS.md).
 
 ## scanner exports (exact signatures)
 

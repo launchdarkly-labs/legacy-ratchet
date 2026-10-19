@@ -158,6 +158,33 @@ describe('scanProject with the depcruise engine', () => {
     expect(calls).toHaveLength(0);
   });
 
+  it('adds new packages to the prefilter and counts adoption when asked', async () => {
+    repo.writeJson('legacy.json', FORMS_DATES_CONFIG);
+    repo.write('src/a.ts', "import { reduxForm } from 'redux-form';\n");
+    repo.write('src/new-only.ts', "import { useForm } from 'react-hook-form';\nimport { format } from 'date-fns/format';\n");
+    repo.write('src/plain.ts', 'export const x = 1;\n');
+    const calls: ExtractOptions[] = [];
+    const extract = async (opts: ExtractOptions): Promise<ExtractResult> => {
+      calls.push(opts);
+      return extractWithDepcruise(opts);
+    };
+    const ctx = createContext({}, quietIo(repo.dir));
+    const plain = await scanProject(ctx, FORMS_DATES_CONFIG as never, { extract });
+    expect(calls[0]!.prefilter).toEqual(['moment', 'redux-form']);
+    expect(plain).not.toHaveProperty('adoption');
+
+    const scan = await scanProject(ctx, FORMS_DATES_CONFIG as never, { extract, adoption: true });
+    expect(calls[1]!.prefilter).toEqual(['date-fns', 'dayjs', 'moment', 'react-hook-form', 'redux-form']);
+    expect(scan.adoption).toEqual([
+      { groupId: 'dates', filePath: 'src/new-only.ts', packageName: 'date-fns' },
+      { groupId: 'forms', filePath: 'src/new-only.ts', packageName: 'react-hook-form' },
+    ]);
+    expect(scan.sites.map((s) => s.id)).toEqual(['forms|src/a.ts|import|redux-form']);
+
+    const scanner = await scanProject(ctx, FORMS_DATES_CONFIG as never, { engine: 'scanner', adoption: true });
+    expect(scanner.adoption).toEqual(scan.adoption);
+  });
+
   it('omits the prefilter with prefilter: false', async () => {
     repo.writeJson('legacy.json', FORMS_DATES_CONFIG);
     repo.write('src/a.ts', "import { reduxForm } from 'redux-form';\n");
