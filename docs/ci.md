@@ -43,6 +43,7 @@ and fails the step when the CLI exits non-zero. Pin `uses:` to a commit SHA and 
 | `working-directory` | `.` | Directory containing `legacy.json` and `.legacy/`. |
 | `base-ref` | `${{ github.event.pull_request.base.sha }}` | Ref passed to `--base`. On events without a pull request it is empty, and the action skips baseline verification with a notice. |
 | `args` | | Extra arguments appended to `legacy check`, split on whitespace. For example `--changed-since origin/main`. |
+| `report-path` | | When set, also writes the HTML dashboard to this path (relative to `working-directory`) with `legacy report --format html`, even when the check fails. Upload it with `actions/upload-artifact` or publish it to static hosting. |
 
 To try it locally against the example app, build the CLI and run `node packages/cli/dist/bin.js check --root examples/vite-react --format github`.
 

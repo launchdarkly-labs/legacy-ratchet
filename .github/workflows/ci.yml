@@ -34,3 +34,6 @@ jobs:
         with:
           working-directory: examples/vite-react
           base-ref: ""
+          report-path: legacy-report.html
+      - name: Report was written
+        run: grep -q 'id="legacy-ratchet-data"' examples/vite-react/legacy-report.html

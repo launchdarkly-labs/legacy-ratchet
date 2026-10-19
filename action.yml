@@ -21,6 +21,12 @@ inputs:
     description: Extra arguments appended to `legacy check`, split on whitespace.
     required: false
     default: ""
+  report-path:
+    description: >-
+      When set, also write the HTML dashboard to this path (relative to working-directory)
+      with `legacy report --format html`. Runs even when the check fails.
+    required: false
+    default: ""
 
 runs:
   using: composite
@@ -55,3 +61,13 @@ runs:
           read -r -a extra <<< "$LEGACY_RATCHET_ARGS"
         fi
         "${cmd[@]}" ${extra[@]+"${extra[@]}"}
+    - name: legacy report
+      if: ${{ always() && inputs.report-path != '' }}
+      shell: bash
+      working-directory: ${{ inputs.working-directory }}
+      env:
+        LEGACY_RATCHET_BIN: ${{ github.action_path }}/packages/cli/dist/bin.js
+        LEGACY_RATCHET_REPORT_PATH: ${{ inputs.report-path }}
+      run: |
+        set -euo pipefail
+        node "$LEGACY_RATCHET_BIN" report --format html --output "$LEGACY_RATCHET_REPORT_PATH"
