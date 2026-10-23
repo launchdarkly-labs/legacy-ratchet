@@ -81,10 +81,10 @@ export function formatViolation(v: Violation): string;            // plain text,
 - A site is *excepted* if a non-expired exception with matching `groupId` has a `files` glob (picomatch, `dot: true`) matching `site.filePath`. Listed in `appliedExceptions`; never violates.
 - An exception is expired when `expires` < today (UTC date of `opts.now ?? new Date()`), i.e. it is still valid ON its expiry date. Expired exceptions go to `expiredExceptions` (with their index in `config.exceptions`) and do NOT excuse sites. Any expired exception makes `failed = true`.
 - `mode: 'report'` → never a violation.
-- `mode: 'ratchet'` → violation (`reason: 'new-site'`) iff `baseline` is undefined OR `site.id` not in `baseline.allowed`. Otherwise it goes in `existing`.
+- `mode: 'ratchet'` → violation (`reason: 'new-site'`) iff `baseline` is undefined OR neither `site.id` nor any id with the same `groupId` and `filePath` is in `baseline.allowed`. Otherwise it goes in `existing`.
 - `mode: 'ban'` → every non-suppressed, non-excepted site is a violation (`reason: 'banned'`), regardless of baseline.
 - `failed` = any violation with `severity: 'error'` OR any expired exception.
-- `retired` = ids in `baseline.allowed` whose group still exists, that are not present in `sites`. Sorted.
+- `retired` = ids in `baseline.allowed` whose group still exists, that are not present in `sites`, and whose `groupId` and `filePath` match no site in `sites`. Sorted. `updateBaseline` removes exactly the ids that are not present and whose file has no site of the same group.
 - `groups`: one summary per config group (in config key order). `remaining` = count of current sites in group; `retired` = retired ids for group; `newSites` = violations in group.
 - Violation `message`: `New import of "${spec}" is not allowed.` for new-site; `Import of "${spec}" is banned.` for banned. `replacements` = group.new; `docs` = group.docs.
 

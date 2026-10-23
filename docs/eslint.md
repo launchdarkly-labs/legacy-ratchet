@@ -46,11 +46,11 @@ export default [
 
 Reports each import of a legacy package that `migration-tracker check` would report as a violation:
 
-- `ratchet` groups: imports whose site id is not in the baseline.
+- `ratchet` groups: imports in a file that has no baselined site in the same group.
 - `ban` groups: every import.
 - `report` groups: nothing.
 
-Sites are file-level, as in `migration-tracker check`: every import of the same specifier with the same module system in a file is one site (`import`, `export … from` and `import()` share one; `require` and `import x = require()` share another). So a second import of a baselined specifier in the same file is not reported, but a new subpath is. When a site is a violation, the rule reports every occurrence of it, except occurrences whose own comment suppresses the group. A site is suppressed only when all of its occurrences are, so one comment never covers other imports of the same specifier.
+Sites are file-level, as in `migration-tracker check`: every import of the same specifier with the same module system in a file is one site (`import`, `export … from` and `import()` share one; `require` and `import x = require()` share another). A file with a baselined site in a group can add other imports of that group, including new subpaths and other packages, without being reported. When a site is a violation, the rule reports every occurrence of it, except occurrences whose own comment suppresses the group. A site is suppressed only when all of its occurrences are, so one comment never covers other imports of the same specifier.
 
 Suppressed sites (inline comment with a reason) and sites covered by a non-expired exception are not reported.
 

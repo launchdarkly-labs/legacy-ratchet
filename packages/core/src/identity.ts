@@ -19,6 +19,18 @@ export function siteId(s: SiteKey): string {
   return `${s.groupId}|${s.filePath}|${s.importKind}|${s.moduleSpecifier}`;
 }
 
+export function groupFileKey(s: Pick<SiteKey, 'groupId' | 'filePath'>): string {
+  return `${s.groupId}|${s.filePath}`;
+}
+
+export function groupFileKeyOfId(id: string): string | undefined {
+  try {
+    return groupFileKey(parseSiteId(id));
+  } catch {
+    return undefined;
+  }
+}
+
 export function parseSiteId(id: string): SiteKey {
   const parts = id.split('|');
   if (parts.length === 5) {

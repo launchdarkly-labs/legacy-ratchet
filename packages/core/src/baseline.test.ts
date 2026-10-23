@@ -59,13 +59,28 @@ describe('updateBaseline', () => {
     ]);
     const { baseline, removed } = updateBaseline(previous, current, { ...meta, revision: { commit: 'def' } });
     expect(baseline.schemaVersion).toBe(2);
-    expect(baseline.allowed).toEqual(['dates|src/a.ts|import|moment', 'forms|src/a.ts|import|redux-form']);
+    expect(baseline.allowed).toEqual([
+      'dates|src/a.ts|import|moment',
+      'forms|src/a.ts|import|redux-form',
+      'forms|src/a.ts|import|redux-form/lib/Field',
+    ]);
     expect(baseline.allowed).not.toContain('forms|src/c.ts|import|redux-form');
-    expect(removed).toEqual(['forms|src/a.ts|import|redux-form/lib/Field', 'forms|src/b.ts|import|redux-form']);
+    expect(removed).toEqual(['forms|src/b.ts|import|redux-form']);
     expect(baseline.scannerVersion).toBe('0.1.0');
     expect(baseline.generatedAt).toBe(now.toISOString());
     expect(baseline.revision).toEqual({ commit: 'def' });
     expect(baseline.configDigest).toBe(configDigest(cfg));
+  });
+
+  it('keeps an id while its file still has another site in the same group', () => {
+    const current = collectSites(cfg, [raw('src/a.ts', 'redux-form/lib/Field', 3), raw('src/b.ts', 'redux-form', 1)]);
+    const { baseline, removed } = updateBaseline(previous, current, meta);
+    expect(baseline.allowed).toEqual([
+      'forms|src/a.ts|import|redux-form',
+      'forms|src/a.ts|import|redux-form/lib/Field',
+      'forms|src/b.ts|import|redux-form',
+    ]);
+    expect(removed).toEqual(['dates|src/a.ts|import|moment']);
   });
 
   it('refreshes the digest when config changes', () => {

@@ -38,6 +38,21 @@ ruleTester.run('no-legacy-imports', noLegacyImports, {
   valid: [
     { name: 'baselined site passes', filename: f(withBaseline, 'src/a.ts'), code: "import { reduxForm } from 'redux-form';" },
     {
+      name: 'import-equals in a file allowed for the group passes',
+      filename: f(withBaseline, 'src/a.ts'),
+      code: "import { reduxForm } from 'redux-form';\nimport forms = require('redux-form');",
+    },
+    {
+      name: 'another specifier of the group in a file allowed for the group passes',
+      filename: f(withBaseline, 'src/a.ts'),
+      code: "import { reduxForm } from 'redux-form';\nimport { Field } from 'redux-form/immutable';",
+    },
+    {
+      name: 'a different module system in a file allowed for the group passes',
+      filename: f(withBaseline, 'src/a.ts'),
+      code: "const forms = require('redux-form');",
+    },
+    {
       name: 'baselined site passes with other code moving it around',
       filename: f(withBaseline, 'src/a.ts'),
       code: "const x = 1;\n\n\nimport { reduxForm } from 'redux-form';",
@@ -248,24 +263,6 @@ ruleTester.run('no-legacy-imports', noLegacyImports, {
         { messageId: 'newImport', line: 1 },
         { messageId: 'newImport', line: 2 },
       ],
-    },
-    {
-      name: 'import-equals is a require site, not covered by a baselined static import',
-      filename: f(withBaseline, 'src/a.ts'),
-      code: "import { reduxForm } from 'redux-form';\nimport forms = require('redux-form');",
-      errors: [{ messageId: 'newImport', line: 2 }],
-    },
-    {
-      name: 'subpath is matched (different specifier = different identity)',
-      filename: f(withBaseline, 'src/a.ts'),
-      code: "import { reduxForm } from 'redux-form';\nimport { Field } from 'redux-form/immutable';",
-      errors: [{ messageId: 'newImport', line: 2}],
-    },
-    {
-      name: 'same specifier with a different module system is a new site',
-      filename: f(withBaseline, 'src/a.ts'),
-      code: "const forms = require('redux-form');",
-      errors: [{ messageId: 'newImport' }],
     },
     {
       name: 'suppression without reason does not silence',

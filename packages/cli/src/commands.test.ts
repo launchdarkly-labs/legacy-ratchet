@@ -463,7 +463,7 @@ describe('baseline migrate', () => {
     const base = repo.commit('v1 baseline');
 
     const legacyCheck = await repo.run(['check', '--no-color']);
-    expect(legacyCheck.code).toBe(1);
+    expect(legacyCheck.code).toBe(0);
     expect(legacyCheck.stderr.match(/migration-tracker baseline migrate/g)).toHaveLength(1);
 
     const r = await repo.run(['baseline', 'migrate', '--no-color']);

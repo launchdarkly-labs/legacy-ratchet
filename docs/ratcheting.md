@@ -50,8 +50,8 @@ Line numbers were never part of the id. They change whenever anyone edits the co
 
 - A second import of an already-allowed specifier in the same file is not a new site.
 - Switching between `import` and `import()`, or adding an `export ... from` of a specifier the file already imports, is not a new site.
-- A new subpath is a new site: `redux-form/lib/Field` and `redux-form` are different specifiers.
-- Adding `require('m')` to a file that only had `import ... from 'm'` is a new site, because the module system differs.
+- A file that has a baselined site in a group may add other imports of that group without failing. Adding `redux-form/lib/Field` or `require('redux-form')` to a file that is allowed `redux-form` passes, and so does adding `@hookform/resolvers` to a file allowed `react-hook-form` when both are in the same group. The file has to be migrated off the group either way, so these imports add no new migration work. They are still separate sites in reports.
+- An import of a different group is still a new site, even in a file that is allowed another group.
 - In `ban` groups, `migration-tracker check` reports one violation per site, so per file, specifier and kind, not per import statement. The ESLint rule marks every import of a violating site.
 
 ### Suppressions on file-level sites
@@ -108,7 +108,7 @@ The text summary line shows all three numbers:
 Legacy sites: 108 remaining | 12 retired | 1 new violation
 ```
 
-Retired sites are entries in the baseline whose group still exists but that no longer appear in the code. They do not fail the check. They are a prompt to run `baseline update`. With `--changed-since`, retired sites are only computed for the files that were scanned.
+Retired sites are entries in the baseline whose group still exists but that no longer appear in the code, in files that have no other site of that group. An entry stays in the baseline while its file still imports anything from its group, because that entry is what allows the file's other imports of the group. They do not fail the check. They are a prompt to run `baseline update`. With `--changed-since`, retired sites are only computed for the files that were scanned.
 
 You can run `baseline update` on a schedule or as part of the pull request that removes the import. Either way it can only shrink the baseline.
 
@@ -118,7 +118,7 @@ These are deliberate trade-offs.
 
 - **File moves and renames look like a retired site plus a new one.** The file path is part of the id, so moving `src/a.ts` to `src/b.ts` retires `…|src/a.ts|…` and adds `…|src/b.ts|…`, which fails a `ratchet` check. Options: migrate the import as part of the move, add an inline suppression with a reason, or add an exception. Regenerating the baseline with `--force` is caught by `--base` verification.
 - **Copied code is new code.** Copying a file with a legacy import into a new file creates a new site, even though no new dependency was introduced. This is intentional.
-- **More imports in an allowed file are not caught.** Because sites are file-level, a file that is allowed to import `moment` can import it again without failing. The ratchet tracks which files depend on a package, not how many statements do.
+- **More imports in an allowed file are not caught.** A file that is allowed any site in a group can import that group's packages again, or other packages of the same group, without failing. The ratchet tracks which files depend on a group, not how many statements or specifiers they use.
 - **Dynamically constructed specifiers are not detected.** `require(name)`, `` import(`./locale/${lang}`) `` and similar calls are ignored. Only string literals and template literals without substitutions are counted.
 - **Matching uses the specifier as written, not the resolved path.** dependency-cruiser resolves `tsconfig` `paths` and bundler aliases when it is given a tsconfig (`--ts-config`, or `options.tsConfig` in a `--depcruise-config` file, or your own config in plugin mode). That resolution only helps it classify imports, for example as type-only. It never decides which group a site belongs to. If `@/date` is an alias for a wrapper around `moment`, imports of `@/date` are not counted; the imports of `moment` inside the wrapper are. Matching works this way so the ESLint rule, which has no resolver, gives the same answer, and so results do not depend on `node_modules` being installed or on workspace packages resolving to source files.
 - **Imports inside `declare module` blocks.** dependency-cruiser only reads top-level import declarations, so `import` statements inside a `declare module 'x' { ... }` block in a `.ts` file are not counted by the default engine. The ESLint rule and `--engine scanner` do count them. Declaration files (`.d.ts`) are never scanned.
