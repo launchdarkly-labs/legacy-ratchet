@@ -21,3 +21,13 @@ export { assignOwners, CODEOWNERS_LOCATIONS, codeownersPatternRegex, ownersFor, 
 export type { CodeownersRule } from './codeowners.js';
 export { formatViolation } from './format.js';
 export { isIgnoredPath } from './ignore.js';
+export {
+  exceptionEntries,
+  exceptionsSnippet,
+  EXPIRES_PLACEHOLDER,
+  OWNER_PLACEHOLDER,
+  REASON_PLACEHOLDER,
+  remediationFor,
+  suppressionComment,
+} from './remediation.js';
+export type { Remediation, RemediationException } from './remediation.js';

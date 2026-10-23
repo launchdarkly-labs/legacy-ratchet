@@ -20,7 +20,7 @@ import path from 'node:path';
 
 import { CliError, errorMessage } from './errors.js';
 import { formatCheckMarkdown } from './format/markdown.js';
-import { CHECK_FORMATS, githubPaths, renderCheck, type CheckFormat } from './format/render.js';
+import { CHECK_FORMATS, fixPaths, githubPaths, renderCheck, type CheckFormat } from './format/render.js';
 import { colorEnabled, createColors, type Env } from './io.js';
 import { locateConfig } from './load-sync.js';
 import { loadBaselineSync, loadCodeownersSync, loadConfigSync, loadHistorySync } from './load.js';
@@ -200,6 +200,7 @@ function check(result: CruiseResult, environment: PluginEnvironment): ReporterOu
   const notes: string[] = [];
   const prefix = format === 'github' ? (tryGit(root, ['rev-parse', '--show-prefix']) ?? '') : '';
   const relConfig = path.relative(root, configPath).split(path.sep).join('/');
+  const paths = fixPaths(relConfig, configPath, BASELINE_PATH);
   const colors = createColors(
     format === 'text' &&
       colorEnabled({ stdout: () => undefined, stderr: () => undefined, cwd, env, isTTY: environment.isTTY }, undefined),
@@ -208,9 +209,10 @@ function check(result: CruiseResult, environment: PluginEnvironment): ReporterOu
     colors,
     quiet: false,
     github: githubPaths(prefix, relConfig, BASELINE_PATH),
+    paths,
   });
   if (format === 'github' && env.GITHUB_STEP_SUMMARY) {
-    appendFileSync(env.GITHUB_STEP_SUMMARY, `${formatCheckMarkdown(outcome).trimEnd()}\n`, 'utf8');
+    appendFileSync(env.GITHUB_STEP_SUMMARY, `${formatCheckMarkdown(outcome, paths).trimEnd()}\n`, 'utf8');
   }
   if (env.MIGRATION_TRACKER_REPORT) {
     writeReport(path.resolve(cwd, env.MIGRATION_TRACKER_REPORT), root, config, located.sites, mapped.imports, notes);

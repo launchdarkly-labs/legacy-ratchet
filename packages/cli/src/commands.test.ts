@@ -184,7 +184,35 @@ describe('check', () => {
     expect((await repo.run(['baseline', 'create'])).code).toBe(0);
     const r = await repo.run(['check', '--no-color']);
     expect(r.code).toBe(1);
-    expect(r.stdout).toContain('✖ forms: src/a.ts:1\n  Import of "redux-form" is banned.\n\nLegacy sites');
+    expect(r.stdout).toBe(
+      [
+        '✖ forms: src/a.ts:1',
+        '  Import of "redux-form" is banned.',
+        '',
+        'How to fix',
+        '  1. Remove the import; this package is banned.',
+        '  2. If an import must stay, add this comment on the line above it, with a real reason:',
+        '       // migration-tracker-disable-next-line forms -- <why this import must stay>',
+        '  3. For several files or a temporary period, add an entry to "exceptions" in migrations.json:',
+        '       {',
+        '         "exceptions": [',
+        '           {',
+        '             "groupId": "forms",',
+        '             "files": [',
+        '               "src/a.ts"',
+        '             ],',
+        '             "reason": "<why this import must stay>",',
+        '             "owner": "<team>",',
+        '             "expires": "<YYYY-MM-DD>"',
+        '           }',
+        '         ]',
+        '       }',
+        "  4. Don't add entries to .migrations/baseline.json by hand; CI rejects baseline additions.",
+        '',
+        'Legacy sites: 1 remaining | 0 retired | 1 new violation',
+        '',
+      ].join('\n'),
+    );
   });
 
   it('report/ban-only configs do not need a baseline', async () => {
@@ -298,6 +326,17 @@ describe('check formats', () => {
           message: 'New import of "redux-form" is not allowed.',
           replacements: ['react-hook-form'],
           docs: 'https://example.com/forms',
+          remediation: {
+            replacements: ['react-hook-form'],
+            suppressionComment: '// migration-tracker-disable-next-line forms -- <why this import must stay>',
+            exception: {
+              groupId: 'forms',
+              files: ['src/c.ts'],
+              reason: '<why this import must stay>',
+              owner: '<team>',
+              expires: '<YYYY-MM-DD>',
+            },
+          },
         },
       ],
       retired: ['forms|src/a.ts|import|redux-form'],
@@ -336,6 +375,35 @@ describe('check formats', () => {
         '',
         '- ✖ **forms**: [src/c.ts:2](src/c.ts#L2) — New import of "redux-form" is not allowed. Preferred replacement: "react-hook-form". [Migration guide](https://example.com/forms)',
         '',
+        '### How to fix',
+        '',
+        '1. Use the replacement listed above (preferred).',
+        '2. If an import must stay, add this comment on the line above it, with a real reason:',
+        '',
+        '   ```ts',
+        '   // migration-tracker-disable-next-line forms -- <why this import must stay>',
+        '   ```',
+        '',
+        '3. For several files or a temporary period, add an entry to `"exceptions"` in `migrations.json`:',
+        '',
+        '   ```json',
+        '   {',
+        '     "exceptions": [',
+        '       {',
+        '         "groupId": "forms",',
+        '         "files": [',
+        '           "src/c.ts"',
+        '         ],',
+        '         "reason": "<why this import must stay>",',
+        '         "owner": "<team>",',
+        '         "expires": "<YYYY-MM-DD>"',
+        '       }',
+        '     ]',
+        '   }',
+        '   ```',
+        '',
+        "4. Don't add entries to `.migrations/baseline.json` by hand; CI rejects baseline additions.",
+        '',
         '🎉 1 legacy site retired. Run `migration-tracker baseline update` and commit `.migrations/baseline.json` to lock in the progress.',
         '',
       ].join('\n'),
@@ -350,7 +418,7 @@ describe('check formats', () => {
     expect(r.code).toBe(1);
     expect(r.stdout).toBe(
       [
-        '::error file=src/c.ts,line=2,col=23,title=migration-tracker/forms::New import of "redux-form" is not allowed. Preferred replacement: "react-hook-form" Migration guide: https://example.com/forms',
+        '::error file=src/c.ts,line=2,col=23,title=migration-tracker/forms::New import of "redux-form" is not allowed. Preferred replacement: "react-hook-form" Migration guide: https://example.com/forms Fix: use "react-hook-form", or if this import must stay add "// migration-tracker-disable-next-line forms -- <why this import must stay>" above this line. See the job summary for exceptions.',
         'Legacy sites: 2 remaining | 1 retired | 1 new violation',
         '',
       ].join('\n'),
@@ -358,6 +426,9 @@ describe('check formats', () => {
     const written = readFileSync(summary, 'utf8');
     expect(written.startsWith('# previous step\n## migration-tracker\n')).toBe(true);
     expect(written).toContain('| forms | ratchet | 1 | 1 | 1 |');
+    expect(written).toContain('### How to fix\n');
+    expect(written).toContain('   // migration-tracker-disable-next-line forms -- <why this import must stay>\n');
+    expect(written).toContain('   ```json\n');
     expect(written.endsWith('\n')).toBe(true);
   });
 
@@ -376,8 +447,8 @@ describe('check formats', () => {
     const r = await repo.run(['check', '--format', 'github', '--base', base]);
     expect(r.code).toBe(1);
     expect(r.stdout.split('\n')).toEqual([
-      '::error file=migrations.json,title=migration-tracker/forms::Exception exceptions[0] for "forms" expired on 2001-02-03 (owner @o): r',
-      '::error file=.migrations/baseline.json,title=migration-tracker/baseline::Unauthorized baseline addition: forms|src/q.ts|import|redux-form. The baseline may only shrink.',
+      '::error file=migrations.json,title=migration-tracker/forms::Exception exceptions[0] for "forms" expired on 2001-02-03 (owner @o): r. Migrate the files or renew the exception with a new expires date.',
+      '::error file=.migrations/baseline.json,title=migration-tracker/baseline::Unauthorized baseline addition: forms|src/q.ts|import|redux-form. Remove this entry from .migrations/baseline.json — the baseline may only shrink. To allow a new import, use a suppression comment or an exceptions entry in migrations.json instead.',
       '::warning file=src/w.ts,line=2,col=8,title=migration-tracker::suppression requires a reason after --',
       'Legacy sites: 2 remaining | 2 retired | 0 new violations',
       '',

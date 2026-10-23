@@ -1,4 +1,5 @@
-import { replacementText, summaryLine, type CheckOutcome } from './types.js';
+import { CONFIG_FILENAME, type Violation } from '@migration-tracker/core';
+import { baselineAdditionGuidance, EXPIRED_GUIDANCE, replacementText, summaryLine, type CheckOutcome } from './types.js';
 
 export function escapeData(s: string): string {
   return s.replace(/%/g, '%25').replace(/\r/g, '%0D').replace(/\n/g, '%0A');
@@ -21,6 +22,21 @@ function annotation(
   return `::${level} ${parts.join(',')}::${escapeData(message)}`;
 }
 
+function sentence(s: string): string {
+  const t = s.trim();
+  return /[.!?]$/.test(t) ? t : `${t}.`;
+}
+
+function quotedList(items: readonly string[]): string {
+  const quoted = items.map((r) => `"${r}"`);
+  return quoted.length <= 1 ? quoted.join('') : `${quoted.slice(0, -1).join(', ')} or ${quoted[quoted.length - 1]}`;
+}
+
+export function fixSentence(v: Violation): string {
+  const first = v.reason === 'banned' || v.replacements.length === 0 ? 'remove the import' : `use ${quotedList(v.replacements)}`;
+  return `Fix: ${first}, or if this import must stay add "// migration-tracker-disable-next-line ${v.site.groupId} -- <why this import must stay>" above this line. See the job summary for exceptions.`;
+}
+
 export interface GithubPaths {
   prefix: string;
   configPath?: string;
@@ -32,7 +48,7 @@ export function formatCheckGithub(outcome: CheckOutcome, paths: GithubPaths): st
   const file = (p: string) => `${paths.prefix}${p}`;
   const out: string[] = [];
   for (const v of result.violations) {
-    const message = [v.message, replacementText(v.replacements), v.docs ? `Migration guide: ${v.docs}` : undefined]
+    const message = [v.message, replacementText(v.replacements), v.docs ? `Migration guide: ${v.docs}` : undefined, fixSentence(v)]
       .filter((s): s is string => s !== undefined)
       .join(' ');
     out.push(
@@ -54,7 +70,7 @@ export function formatCheckGithub(outcome: CheckOutcome, paths: GithubPaths): st
       annotation(
         'error',
         { ...(paths.configPath !== undefined ? { file: paths.configPath } : {}), title: `migration-tracker/${x.groupId}` },
-        `Exception exceptions[${e.index}] for "${x.groupId}" expired on ${x.expires} (owner ${x.owner}): ${x.reason}`,
+        `Exception exceptions[${e.index}] for "${x.groupId}" expired on ${x.expires} (owner ${x.owner}): ${sentence(x.reason)} ${EXPIRED_GUIDANCE}`,
       ),
     );
   }
@@ -63,7 +79,7 @@ export function formatCheckGithub(outcome: CheckOutcome, paths: GithubPaths): st
       annotation(
         'error',
         { file: paths.baselinePath, title: 'migration-tracker/baseline' },
-        `Unauthorized baseline addition: ${id}. The baseline may only shrink.`,
+        `Unauthorized baseline addition: ${id}. ${baselineAdditionGuidance(1, { baseline: paths.baselinePath, config: paths.configPath ?? CONFIG_FILENAME })}`,
       ),
     );
   }

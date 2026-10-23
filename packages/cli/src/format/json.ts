@@ -1,4 +1,4 @@
-import type { ExpiredException, ImportSite } from '@migration-tracker/core';
+import { remediationFor, type ExpiredException, type ImportSite } from '@migration-tracker/core';
 import type { ScanError } from '@migration-tracker/scanner';
 import type { CheckOutcome } from './types.js';
 
@@ -75,6 +75,7 @@ export function formatCheckJson(outcome: CheckOutcome): string {
       message: v.message,
       replacements: [...v.replacements],
       docs: v.docs ?? null,
+      remediation: remediationFor(v),
     }));
   const out: Record<string, unknown> = {
     schemaVersion: 2,

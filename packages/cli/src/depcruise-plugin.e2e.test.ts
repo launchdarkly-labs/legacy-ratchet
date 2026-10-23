@@ -58,5 +58,6 @@ describe.skipIf(!built)('dependency-cruiser runs the reporter plugin end to end'
     expect(fail.status).toBe(1);
     expect(fail.stdout).toContain('✖ dates: src/lib/newDates.ts:1\n  New import of "moment" is not allowed.');
     expect(fail.stdout).toContain('Legacy sites: 10 remaining | 0 retired | 1 new violation');
+    expect(fail.stdout).toContain('How to fix\n  1. Use the replacement listed above (preferred).');
   });
 });

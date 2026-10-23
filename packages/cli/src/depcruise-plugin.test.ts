@@ -263,12 +263,19 @@ describe('formats and reports', () => {
     vi.stubEnv('GITHUB_STEP_SUMMARY', summary);
     const out = migrationTrackerReporter(resultFor(tmp, modules()));
     expect(out.output).toContain('::error file=src/b.ts,line=1,col=23,title=migration-tracker/forms::');
-    expect(fs.readFileSync(summary, 'utf8')).toContain('## migration-tracker');
+    expect(out.output).toContain('"// migration-tracker-disable-next-line forms -- <why this import must stay>" above this line. See the job summary for exceptions.');
+    const written = fs.readFileSync(summary, 'utf8');
+    expect(written).toContain('## migration-tracker');
+    expect(written).toContain('### How to fix');
+    expect(written).toContain('"src/b.ts"');
   });
 
   it('prints markdown', () => {
     vi.stubEnv('MIGRATION_TRACKER_FORMAT', 'markdown');
-    expect(migrationTrackerReporter(resultFor(tmp, modules())).output).toContain('**✖ Check failed.**');
+    const md = migrationTrackerReporter(resultFor(tmp, modules())).output;
+    expect(md).toContain('**✖ Check failed.**');
+    expect(md).toContain('### How to fix');
+    expect(md).toContain('   // migration-tracker-disable-next-line forms -- <why this import must stay>');
   });
 
   it('colours text only on a TTY without NO_COLOR', () => {
@@ -356,5 +363,8 @@ describe('parity with migration-tracker check on examples/vite-react', () => {
     expect(cli.code).toBe(1);
     expect(out.output).toBe(cli.stdout);
     expect(out.output).toContain('✖ dates: src/lib/newDates.ts:1');
+    expect(out.output).toContain('\nHow to fix\n');
+    expect(out.output).toContain('       // migration-tracker-disable-next-line dates -- <why this import must stay>\n');
+    expect(out.output).toContain('               "src/lib/newDates.ts"\n');
   });
 });

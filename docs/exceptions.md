@@ -88,6 +88,8 @@ A reasonable policy:
 3. For a whole file or directory, or anything that should end by a date, ask the group owner for an exception with an expiry no more than one or two quarters out.
 4. Never edit `.migrations/baseline.json` by hand to allow a site.
 
+A failing `migration-tracker check` prints the suppression comment and an `exceptions` entry for the files that failed, ready to copy. See [ci.md](ci.md#fixing-a-failing-check).
+
 ## Reporting
 
 - `migration-tracker check` (text) lists expired exceptions and suppressions without a reason.

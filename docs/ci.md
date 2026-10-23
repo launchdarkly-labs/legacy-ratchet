@@ -60,6 +60,17 @@ node path/to/migration-tracker/packages/cli/dist/bin.js check --base origin/main
 
 `--changed-since <ref>` scans only files changed between `<ref>` and `HEAD` (added, copied, modified or renamed, from `git diff --name-only --diff-filter=ACMR <ref>...HEAD`), plus untracked files. It is faster on large repositories. Retired sites are then only computed for the scanned files, so run a full check on your main branch.
 
+## Fixing a failing check
+
+Every failing `check` prints the fix next to the failure. For a new or banned import:
+
+1. Use the replacement the violation lists. For a `ban` group, remove the import.
+2. If the import must stay, add `// migration-tracker-disable-next-line <group> -- <why this import must stay>` on the line above it. The reason is required.
+3. For several files or a temporary period, add an entry to `exceptions` in `migrations.json`. The output includes a ready-made entry with placeholder `reason`, `owner` and `expires` values. `migration-tracker validate` fails until you replace them.
+4. Don't add entries to `.migrations/baseline.json` by hand. `--base` rejects baseline additions.
+
+For an expired exception, migrate the files or renew the exception with a new `expires` date. For an unauthorized baseline addition, remove the entry and use step 2 or 3 instead. See [exceptions.md](exceptions.md) for the details of both options.
+
 ## Import extraction engine in CI
 
 `migration-tracker check` uses [dependency-cruiser](depcruise.md) by default. In CI:
@@ -100,13 +111,33 @@ Set `MIGRATION_TRACKER_DEBUG=1` to print stack traces for runtime errors.
 
 ### `text` (default)
 
-One block per violation, then expired exceptions, then suppressions with no reason (as warnings), then a summary line:
+One block per violation, then expired exceptions, then suppressions with no reason (as warnings), then a "How to fix" section when there are violations (left out with `--quiet`), then a summary line:
 
 ```
 ✖ forms: src/features/checkout/PaymentForm.tsx:8
   New import of "redux-form" is not allowed.
   Preferred replacement: "react-hook-form"
   Migration guide: https://engineering.example.com/migrations/forms
+
+How to fix
+  1. Use the replacement listed above (preferred).
+  2. If an import must stay, add this comment on the line above it, with a real reason:
+       // migration-tracker-disable-next-line forms -- <why this import must stay>
+  3. For several files or a temporary period, add an entry to "exceptions" in migrations.json:
+       {
+         "exceptions": [
+           {
+             "groupId": "forms",
+             "files": [
+               "src/features/checkout/PaymentForm.tsx"
+             ],
+             "reason": "<why this import must stay>",
+             "owner": "<team>",
+             "expires": "<YYYY-MM-DD>"
+           }
+         ]
+       }
+  4. Don't add entries to .migrations/baseline.json by hand; CI rejects baseline additions.
 
 Legacy sites: 108 remaining | 12 retired | 1 new violation
 ```
@@ -118,14 +149,14 @@ Legacy sites: 108 remaining | 12 retired | 1 new violation
 Emits a workflow command per violation, so GitHub shows it inline on the pull request diff:
 
 ```
-::error file=src/features/checkout/PaymentForm.tsx,line=8,col=27,title=migration-tracker/forms::New import of "redux-form" is not allowed. Preferred replacement: "react-hook-form"
+::error file=src/features/checkout/PaymentForm.tsx,line=8,col=27,title=migration-tracker/forms::New import of "redux-form" is not allowed. Preferred replacement: "react-hook-form" Fix: use "react-hook-form", or if this import must stay add "// migration-tracker-disable-next-line forms -- <why this import must stay>" above this line. See the job summary for exceptions.
 ```
 
 `warn` violations use `::warning`. If `$GITHUB_STEP_SUMMARY` is set, the `markdown` summary is also appended to it, so it appears on the workflow run's summary page.
 
 ### `markdown`
 
-A summary for a pull request comment or job summary: a table per group with remaining, retired and new counts, a list of violations with `file:line` links using relative paths, the retired count, and, when there are retired sites, a tip to run `migration-tracker baseline update`.
+A summary for a pull request comment or job summary: a table per group with remaining, retired and new counts, a list of violations with `file:line` links using relative paths, a "How to fix" section with the suppression comment and an `exceptions` entry to copy, the retired count, and, when there are retired sites, a tip to run `migration-tracker baseline update`.
 
 The action does not post pull request comments itself. To post one, run `migration-tracker check --format markdown --output migration-tracker.md` and pass the file to a comment action of your choice.
 
@@ -152,7 +183,18 @@ Machine-readable, with a stable key order:
       "severity": "error",
       "message": "New import of \"redux-form\" is not allowed.",
       "replacements": ["react-hook-form"],
-      "docs": "https://engineering.example.com/migrations/forms"
+      "docs": "https://engineering.example.com/migrations/forms",
+      "remediation": {
+        "replacements": ["react-hook-form"],
+        "suppressionComment": "// migration-tracker-disable-next-line forms -- <why this import must stay>",
+        "exception": {
+          "groupId": "forms",
+          "files": ["src/features/checkout/PaymentForm.tsx"],
+          "reason": "<why this import must stay>",
+          "owner": "<team>",
+          "expires": "<YYYY-MM-DD>"
+        }
+      }
     }
   ],
   "retired": ["forms|src/old/Legacy.tsx|import|redux-form"],
@@ -161,6 +203,8 @@ Machine-readable, with a stable key order:
   "exceptedCount": 0
 }
 ```
+
+`remediation` holds the same fixes as the "How to fix" section, for one violation. Its `exception` uses placeholder values that fail validation until you replace them.
 
 `importKind` is the module system (`import` or `require`) and `kinds` lists the syntax forms the site merges (`import`, `export-from`, `dynamic-import`, `require`, `import-equals`). `line`, `column` and `occurrences` are left out when they are unknown, for example for a site the scanner could not locate. `migration-tracker scan --format json` uses the same site shape, also with `schemaVersion: 2`.
 
