@@ -1,8 +1,29 @@
-import { formatViolation, type ExpiredException, type ImportSite, type LegacyConfig, type Violation } from '@migration-tracker/core';
+import {
+  exceptionsSnippet,
+  formatViolation,
+  suppressionComment,
+  type ExpiredException,
+  type ImportSite,
+  type LegacyConfig,
+  type Violation,
+} from '@migration-tracker/core';
 import type { ScanError } from '@migration-tracker/scanner';
 import type { Colors } from '../io.js';
 import { plural } from '../output.js';
-import { summaryLine, warningLocation, type CheckOutcome } from './types.js';
+import {
+  baselineAdditionGuidance,
+  baselineStep,
+  DEFAULT_FIX_PATHS,
+  exceptionStep,
+  EXPIRED_GUIDANCE,
+  fixGroupIds,
+  replaceStep,
+  suppressStep,
+  summaryLine,
+  warningLocation,
+  type CheckOutcome,
+  type FixPaths,
+} from './types.js';
 
 export function colorViolation(v: Violation, c: Colors): string {
   const [head = '', ...rest] = formatViolation(v).split('\n');
@@ -19,25 +40,41 @@ export function formatExpired(e: ExpiredException, c: Colors): string {
     c.dim(`  Reason: ${x.reason}`),
   ];
   if (x.issue) lines.push(c.dim(`  Issue: ${x.issue}`));
-  lines.push(c.dim('  Remove the migrated files from the exception, or extend its "expires" date.'));
+  lines.push(c.dim(`  ${EXPIRED_GUIDANCE}`));
   return lines.join('\n');
 }
 
-export function formatCheckText(outcome: CheckOutcome, c: Colors, quiet: boolean): string {
+export function formatHowToFix(violations: readonly Violation[], c: Colors, paths: FixPaths = DEFAULT_FIX_PATHS): string {
+  const groups = fixGroupIds(violations);
+  const indent = (text: string) => text.split('\n').map((l) => `       ${c.cyan(l)}`);
+  return [
+    c.bold('How to fix'),
+    `  1. ${replaceStep(violations)}`,
+    `  2. ${suppressStep(groups.length)}`,
+    ...groups.flatMap((g) => indent(suppressionComment(g))),
+    `  3. ${exceptionStep(paths)}`,
+    ...indent(exceptionsSnippet(violations)),
+    `  4. ${baselineStep(paths)}`,
+  ].join('\n');
+}
+
+export function formatCheckText(outcome: CheckOutcome, c: Colors, quiet: boolean, paths: FixPaths = DEFAULT_FIX_PATHS): string {
   const { result } = outcome;
   const blocks: string[] = [];
   for (const v of result.violations) blocks.push(colorViolation(v, c));
   for (const e of result.expiredExceptions) blocks.push(formatExpired(e, c));
-  for (const id of outcome.baselineAdditions ?? []) {
+  const additions = outcome.baselineAdditions ?? [];
+  if (additions.length > 0) {
     blocks.push(
       [
-        c.red(`✖ Unauthorized baseline addition: ${id}`),
-        c.dim('  The baseline may only shrink. Remove the new legacy import instead of allowing it.'),
+        ...additions.map((id) => c.red(`✖ Unauthorized baseline addition: ${id}`)),
+        c.dim(`  ${baselineAdditionGuidance(additions.length, paths)}`),
       ].join('\n'),
     );
   }
   if (!quiet) {
     for (const w of outcome.warnings) blocks.push(c.yellow(`⚠ ${warningLocation(w)}: ${w.message}`));
+    if (result.violations.length > 0) blocks.push(formatHowToFix(result.violations, c, paths));
     const tail: string[] = [];
     if (outcome.changed) {
       tail.push(c.dim(`Checked ${plural(outcome.changed.files.length, 'changed file')} since ${outcome.changed.ref}.`));

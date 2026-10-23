@@ -62,6 +62,26 @@ describe('full workflow', () => {
         '  Preferred replacement: "react-hook-form"',
         '  Migration guide: https://example.com/forms',
         '',
+        'How to fix',
+        '  1. Use the replacement listed above (preferred).',
+        '  2. If an import must stay, add this comment on the line above it, with a real reason:',
+        '       // migration-tracker-disable-next-line forms -- <why this import must stay>',
+        '  3. For several files or a temporary period, add an entry to "exceptions" in migrations.json:',
+        '       {',
+        '         "exceptions": [',
+        '           {',
+        '             "groupId": "forms",',
+        '             "files": [',
+        '               "src/c.ts"',
+        '             ],',
+        '             "reason": "<why this import must stay>",',
+        '             "owner": "<team>",',
+        '             "expires": "<YYYY-MM-DD>"',
+        '           }',
+        '         ]',
+        '       }',
+        "  4. Don't add entries to .migrations/baseline.json by hand; CI rejects baseline additions.",
+        '',
         'Legacy sites: 4 remaining | 0 retired | 1 new violation',
         '',
       ].join('\n'),
@@ -72,6 +92,7 @@ describe('full workflow', () => {
     const passing = await repo.run(['check']);
     expect(passing.code).toBe(0);
     expect(passing.stdout).toContain('Legacy sites: 2 remaining | 1 retired | 0 new violations');
+    expect(passing.stdout).not.toContain('How to fix');
     expect(passing.stdout).toContain('Run "migration-tracker baseline update" to remove 1 retired site from the baseline.');
 
     const update = await repo.run(['baseline', 'update']);
@@ -93,6 +114,10 @@ describe('full workflow', () => {
     const checkBase = await repo.run(['check', '--base', baseRef]);
     expect(checkBase.code).toBe(1);
     expect(checkBase.stdout).toContain('✖ Unauthorized baseline addition: forms|src/z.ts|import|redux-form');
+    expect(checkBase.stdout).toContain(
+      '  Remove this entry from .migrations/baseline.json — the baseline may only shrink. To allow a new import, use a suppression comment or an exceptions entry in migrations.json instead.',
+    );
+    expect(checkBase.stdout).not.toContain('How to fix');
     repo.write('.migrations/baseline.json', cleanBaseline);
     expect((await repo.run(['check', '--base', baseRef])).code).toBe(0);
 
@@ -108,6 +133,7 @@ describe('full workflow', () => {
     const expired = await repo.run(['check', '--no-color']);
     expect(expired.code).toBe(1);
     expect(expired.stdout).toContain('✖ forms: exception expired on 2000-01-01 (exceptions[0])');
+    expect(expired.stdout).toContain('  Migrate the files or renew the exception with a new expires date.');
     expect(expired.stdout).toContain('✖ forms: src/legacy/old.ts:1');
     repo.remove('src/legacy/old.ts');
     repo.writeJson('migrations.json', FORMS_DATES_CONFIG);

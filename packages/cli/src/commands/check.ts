@@ -3,7 +3,7 @@ import { BASELINE_PATH } from '@migration-tracker/core';
 import { reportEngineWarnings, resolveEngineOptions, type EngineFlags } from '../engine-options.js';
 import { CliError, withErrors } from '../errors.js';
 import { formatCheckMarkdown } from '../format/markdown.js';
-import { CHECK_FORMATS, githubPaths, renderCheck, type CheckFormat } from '../format/render.js';
+import { CHECK_FORMATS, fixPaths, githubPaths, renderCheck, type CheckFormat } from '../format/render.js';
 import type { CheckOutcome } from '../format/types.js';
 import { repoPrefix } from '../git.js';
 import { createColors, envOf, type Io } from '../io.js';
@@ -77,14 +77,16 @@ export const checkCommand = withErrors(async (options: CheckOptions, io: Io): Pr
 
   const prefix = format === 'github' ? await repoPrefix(ctx.root) : '';
   const relConfig = path.relative(ctx.root, ctx.configPath).split(path.sep).join('/');
+  const paths = fixPaths(relConfig, displayPath(ctx, ctx.configPath), BASELINE_PATH);
   const content = renderCheck(outcome, format, {
     colors: options.output === undefined ? ctx.color : createColors(false),
     quiet: ctx.quiet,
     github: githubPaths(prefix, relConfig, BASELINE_PATH),
+    paths,
   });
   if (format === 'github') {
     const summaryFile = envOf(io).GITHUB_STEP_SUMMARY;
-    if (summaryFile) await appendLine(summaryFile, formatCheckMarkdown(outcome).trimEnd());
+    if (summaryFile) await appendLine(summaryFile, formatCheckMarkdown(outcome, paths).trimEnd());
   }
   if (content !== '' || options.output !== undefined) await emit(ctx, content, options.output);
   return outcome.failed ? 1 : 0;
