@@ -1,5 +1,6 @@
 import picomatch from 'picomatch';
-import { parseSiteId } from './identity.js';
+import { groupFileKey, groupFileKeyOfId, parseSiteId } from './identity.js';
+import type { SiteKey } from './identity.js';
 import type {
   AppliedException,
   Baseline,
@@ -56,6 +57,11 @@ export function evaluate(
   });
 
   const allowed = new Set(baseline?.allowed ?? []);
+  const allowedFiles = new Set<string>();
+  for (const id of allowed) {
+    const key = groupFileKeyOfId(id);
+    if (key !== undefined) allowedFiles.add(key);
+  }
   const violations: Violation[] = [];
   const existing: ImportSite[] = [];
   const suppressed: ImportSite[] = [];
@@ -83,7 +89,8 @@ export function evaluate(
     if (mode === 'ban') {
       violation = makeViolation(site, group, 'banned');
     } else if (mode === 'ratchet') {
-      if (baseline === undefined || !allowed.has(site.id)) violation = makeViolation(site, group, 'new-site');
+      const isAllowed = allowed.has(site.id) || allowedFiles.has(groupFileKey(site));
+      if (baseline === undefined || !isAllowed) violation = makeViolation(site, group, 'new-site');
       else existing.push(site);
     }
     if (violation) {
@@ -93,17 +100,20 @@ export function evaluate(
   }
 
   const presentIds = new Set(sites.map((s) => s.id));
+  const presentFiles = new Set(sites.map(groupFileKey));
   const retiredByGroup = new Map<string, number>();
   const retired = sortedUnique(
     [...allowed].filter((id) => {
       if (presentIds.has(id)) return false;
-      let groupId: string;
+      let key: SiteKey;
       try {
-        groupId = parseSiteId(id).groupId;
+        key = parseSiteId(id);
       } catch {
         return false;
       }
+      const { groupId } = key;
       if (!Object.hasOwn(config.groups, groupId)) return false;
+      if (presentFiles.has(groupFileKey(key))) return false;
       retiredByGroup.set(groupId, (retiredByGroup.get(groupId) ?? 0) + 1);
       return true;
     }),

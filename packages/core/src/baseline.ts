@@ -1,6 +1,6 @@
 import { z } from 'zod';
 import { configDigest } from './config.js';
-import { migrateSiteIdV1 } from './identity.js';
+import { groupFileKey, groupFileKeyOfId, migrateSiteIdV1 } from './identity.js';
 import type { Baseline, BaselineDiff, BaselineRevision, ImportSite, LegacyConfig } from './types.js';
 import { sortedUnique } from './util.js';
 
@@ -51,9 +51,15 @@ export function updateBaseline(
   meta: BaselineMeta,
 ): { baseline: Baseline; removed: string[] } {
   const current = new Set(sites.map((s) => s.id));
+  const currentFiles = new Set(sites.map(groupFileKey));
   const prev = sortedUnique(previous.allowed);
-  const allowed = prev.filter((id) => current.has(id));
-  const removed = prev.filter((id) => !current.has(id));
+  const isRetained = (id: string): boolean => {
+    if (current.has(id)) return true;
+    const key = groupFileKeyOfId(id);
+    return key !== undefined && currentFiles.has(key);
+  };
+  const allowed = prev.filter(isRetained);
+  const removed = prev.filter((id) => !isRetained(id));
   return { baseline: buildBaseline(allowed, meta), removed };
 }
 

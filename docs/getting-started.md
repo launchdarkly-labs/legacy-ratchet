@@ -106,7 +106,7 @@ See [ci.md](ci.md).
 `migration-tracker check` compares the current import sites against the baseline:
 
 - A site already in the baseline passes.
-- A site not in the baseline, in a `ratchet` group, is a violation and the check exits 1.
+- A site in a `ratchet` group is a violation, and the check exits 1, when its file has no baselined site in that group.
 
 ```
 ✖ forms: src/features/checkout/PaymentForm.tsx:8

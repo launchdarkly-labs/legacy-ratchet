@@ -79,7 +79,7 @@ Entries in `old` and `new` must be valid npm package names: `name` or `@scope/na
 Modes:
 
 - **`report`**: sites are counted in `scan`, `check` summaries, and reports, but never fail a check. Use it to measure before you enforce.
-- **`ratchet`**: sites listed in `.migrations/baseline.json` pass. Any site not in the baseline is a violation (`New import of "<specifier>" is not allowed.`). If `.migrations/baseline.json` is missing and any group uses `ratchet`, `migration-tracker check` exits 2 with a hint to run `migration-tracker baseline create`.
+- **`ratchet`**: sites listed in `.migrations/baseline.json` pass. Any site in a file with no baselined site of the same group is a violation (`New import of "<specifier>" is not allowed.`). If `.migrations/baseline.json` is missing and any group uses `ratchet`, `migration-tracker check` exits 2 with a hint to run `migration-tracker baseline create`.
 - **`ban`**: every site is a violation, whether or not it is in the baseline (`Import of "<specifier>" is banned.`). Use it once a package is gone, to keep it gone, or with exceptions for the last few holdouts.
 
 Severity decides whether a violation fails the check. `error` violations make `migration-tracker check` exit 1 and print `✖`. `warn` violations are printed with `⚠` and emitted as `::warning` annotations in GitHub format, but do not fail the check. In ESLint, severity comes from your ESLint config instead.

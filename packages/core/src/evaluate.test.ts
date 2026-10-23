@@ -65,20 +65,47 @@ describe('evaluate: modes', () => {
       raw('src/b.ts', 'moment', 9),
       raw('src/b.ts', 'moment/locale/fr', 10),
       raw('src/c.ts', 'redux-form', 1),
+      raw('src/d.ts', 'moment', 1),
     ]);
     const result = evaluate(cfg, after, baseline, { now });
-    expect(result.existing.map((s) => s.id)).toEqual(['dates|src/b.ts|import|moment', 'forms|src/a.ts|import|redux-form']);
+    expect(result.existing.map((s) => s.id)).toEqual([
+      'dates|src/b.ts|import|moment',
+      'dates|src/b.ts|import|moment/locale/fr',
+      'forms|src/a.ts|import|redux-form',
+    ]);
     expect(result.violations.map((v) => [v.site.id, v.reason])).toEqual([
-      ['dates|src/b.ts|import|moment/locale/fr', 'new-site'],
+      ['dates|src/d.ts|import|moment', 'new-site'],
       ['forms|src/c.ts|import|redux-form', 'new-site'],
     ]);
     expect(result.violations[0]).not.toHaveProperty('docs');
     expect(result.violations[0]?.replacements).toEqual([]);
     expect(result.groups).toEqual([
       { groupId: 'forms', mode: 'ratchet', remaining: 2, retired: 0, newSites: 1 },
-      { groupId: 'dates', mode: 'ratchet', remaining: 2, retired: 0, newSites: 1 },
+      { groupId: 'dates', mode: 'ratchet', remaining: 3, retired: 0, newSites: 1 },
     ]);
     expect(result.failed).toBe(true);
+  });
+
+  it('ratchet: another legacy specifier of the same group in an allowed file is existing', () => {
+    const cfg = config({
+      version: 1,
+      groups: {
+        forms: { old: ['redux-form', 'redux-form-validators'], new: [], enforcement: { mode: 'ratchet' } },
+        dates: { old: ['moment'], new: [], enforcement: { mode: 'ratchet' } },
+      },
+    });
+    const baseline = baselineOf(cfg, collectSites(cfg, [raw('src/a.ts', 'redux-form', 1)]));
+    const after = collectSites(cfg, [
+      raw('src/a.ts', 'redux-form', 1),
+      raw('src/a.ts', 'redux-form-validators', 2),
+      raw('src/a.ts', 'moment', 3),
+    ]);
+    const result = evaluate(cfg, after, baseline, { now });
+    expect(result.existing.map((s) => s.id)).toEqual([
+      'forms|src/a.ts|import|redux-form',
+      'forms|src/a.ts|import|redux-form-validators',
+    ]);
+    expect(result.violations.map((v) => v.site.id)).toEqual(['dates|src/a.ts|import|moment']);
   });
 
   it('ratchet passes when nothing new', () => {
@@ -241,7 +268,7 @@ describe('evaluate: exceptions', () => {
 });
 
 describe('evaluate: retired', () => {
-  it('lists baselined ids no longer present, sorted, ignoring removed groups', () => {
+  it('lists baselined ids no longer present in a file with no other site of the group, sorted, ignoring removed groups', () => {
     const cfg = makeConfig('ratchet');
     const before = collectSites(cfg, [
       raw('src/b.ts', 'redux-form', 1),
@@ -255,14 +282,10 @@ describe('evaluate: retired', () => {
     };
     const after = collectSites(cfg, [raw('src/a.ts', 'moment', 2)]);
     const result = evaluate(cfg, after, baseline, { now });
-    expect(result.retired).toEqual([
-      'dates|src/a.ts|import|moment/locale/fr',
-      'forms|src/a.ts|import|redux-form',
-      'forms|src/b.ts|import|redux-form',
-    ]);
+    expect(result.retired).toEqual(['forms|src/a.ts|import|redux-form', 'forms|src/b.ts|import|redux-form']);
     expect(result.groups).toEqual([
       { groupId: 'forms', mode: 'ratchet', remaining: 0, retired: 2, newSites: 0 },
-      { groupId: 'dates', mode: 'ratchet', remaining: 1, retired: 1, newSites: 0 },
+      { groupId: 'dates', mode: 'ratchet', remaining: 1, retired: 0, newSites: 0 },
     ]);
     expect(result.failed).toBe(false);
   });
